@@ -26,11 +26,7 @@ fn truncate(s: &str, max: usize) -> String {
 }
 
 fn short_date(s: &str) -> &str {
-    if s.len() >= 10 {
-        &s[..10]
-    } else {
-        s
-    }
+    if s.len() >= 10 { &s[..10] } else { s }
 }
 
 fn align_columns(rows: &[Vec<String>]) -> String {
@@ -181,10 +177,7 @@ impl PrettyPrint for Issue {
             "\n\n  Created:   {}",
             short_date(&self.created_at)
         ));
-        out.push_str(&format!(
-            "\n  Updated:   {}",
-            short_date(&self.updated_at)
-        ));
+        out.push_str(&format!("\n  Updated:   {}", short_date(&self.updated_at)));
         out.push_str(&format!("\n  URL:       {}", self.url));
         out
     }
@@ -208,9 +201,10 @@ impl PrettyPrint for Team {
     fn pretty(&self) -> String {
         let mut out = format!("{}: {}", self.key, self.name);
         if let Some(ref d) = self.description
-            && !d.is_empty() {
-                out.push_str(&format!("\n\n  {d}"));
-            }
+            && !d.is_empty()
+        {
+            out.push_str(&format!("\n\n  {d}"));
+        }
         out.push_str(&format!(
             "\n\n  Cycles:   {}",
             if self.cycles_enabled {
@@ -219,10 +213,7 @@ impl PrettyPrint for Team {
                 "disabled"
             }
         ));
-        out.push_str(&format!(
-            "\n  Created:  {}",
-            short_date(&self.created_at)
-        ));
+        out.push_str(&format!("\n  Created:  {}", short_date(&self.created_at)));
         out
     }
 
@@ -296,16 +287,14 @@ impl PrettyPrint for User {
             out.push_str("\n  Guest:     yes");
         }
         if let Some(ref d) = self.description
-            && !d.is_empty() {
-                out.push_str(&format!("\n  Bio:       {}", truncate(d, 80)));
-            }
+            && !d.is_empty()
+        {
+            out.push_str(&format!("\n  Bio:       {}", truncate(d, 80)));
+        }
         if let Some(ref ls) = self.last_seen {
             out.push_str(&format!("\n  Last seen: {}", short_date(ls)));
         }
-        out.push_str(&format!(
-            "\n  Created:   {}",
-            short_date(&self.created_at)
-        ));
+        out.push_str(&format!("\n  Created:   {}", short_date(&self.created_at)));
         out
     }
 
@@ -340,10 +329,7 @@ impl PrettyPrint for Comment {
             .map_or("unknown".into(), |u| u.display_name.clone());
         let mut out = format!("Comment on {issue_ref}");
         out.push_str(&format!("\n\n  Author:   {author}"));
-        out.push_str(&format!(
-            "\n  Created:  {}",
-            short_date(&self.created_at)
-        ));
+        out.push_str(&format!("\n  Created:  {}", short_date(&self.created_at)));
         if self.resolved_at.is_some() {
             out.push_str("\n  Resolved: yes");
         }
@@ -372,9 +358,10 @@ impl PrettyPrint for IssueLabel {
     fn pretty(&self) -> String {
         let mut out = format!("{} ({})", self.name, self.color);
         if let Some(ref d) = self.description
-            && !d.is_empty() {
-                out.push_str(&format!("\n\n  {d}"));
-            }
+            && !d.is_empty()
+        {
+            out.push_str(&format!("\n\n  {d}"));
+        }
         if let Some(ref t) = self.team {
             out.push_str(&format!("\n\n  Team:    {} ({})", t.name, t.key));
         }
@@ -437,9 +424,10 @@ impl PrettyPrint for Cycle {
         };
         out.push_str(&format!("\n  Status:    {status}"));
         if let Some(ref d) = self.description
-            && !d.is_empty() {
-                out.push_str(&format!("\n\n  {}", truncate(d, 200)));
-            }
+            && !d.is_empty()
+        {
+            out.push_str(&format!("\n\n  {}", truncate(d, 200)));
+        }
         out
     }
 
@@ -484,9 +472,10 @@ impl PrettyPrint for WorkflowState {
         ));
         out.push_str(&format!("\n  Position:  {}", self.position));
         if let Some(ref d) = self.description
-            && !d.is_empty() {
-                out.push_str(&format!("\n  Note:      {d}"));
-            }
+            && !d.is_empty()
+        {
+            out.push_str(&format!("\n  Note:      {d}"));
+        }
         out
     }
 
@@ -514,15 +503,13 @@ impl PrettyPrint for Document {
         if let Some(ref t) = self.team {
             out.push_str(&format!("\n  Team:     {} ({})", t.name, t.key));
         }
-        out.push_str(&format!(
-            "\n  Created:  {}",
-            short_date(&self.created_at)
-        ));
+        out.push_str(&format!("\n  Created:  {}", short_date(&self.created_at)));
         out.push_str(&format!("\n  URL:      {}", self.url));
         if let Some(ref c) = self.content
-            && !c.is_empty() {
-                out.push_str(&format!("\n\n  {}", truncate(c.trim(), 500)));
-            }
+            && !c.is_empty()
+        {
+            out.push_str(&format!("\n\n  {}", truncate(c.trim(), 500)));
+        }
         out
     }
 
@@ -552,15 +539,13 @@ impl PrettyPrint for Initiative {
         if let Some(ref d) = self.target_date {
             out.push_str(&format!("\n  Target:   {d}"));
         }
-        out.push_str(&format!(
-            "\n  Created:  {}",
-            short_date(&self.created_at)
-        ));
+        out.push_str(&format!("\n  Created:  {}", short_date(&self.created_at)));
         out.push_str(&format!("\n  URL:      {}", self.url));
         if let Some(ref d) = self.description
-            && !d.is_empty() {
-                out.push_str(&format!("\n\n  {}", truncate(d.trim(), 200)));
-            }
+            && !d.is_empty()
+        {
+            out.push_str(&format!("\n\n  {}", truncate(d.trim(), 200)));
+        }
         out
     }
 
@@ -587,14 +572,12 @@ impl PrettyPrint for ProjectMilestone {
         if let Some(ref d) = self.target_date {
             out.push_str(&format!("\n  Target:    {d}"));
         }
-        out.push_str(&format!(
-            "\n  Created:   {}",
-            short_date(&self.created_at)
-        ));
+        out.push_str(&format!("\n  Created:   {}", short_date(&self.created_at)));
         if let Some(ref d) = self.description
-            && !d.is_empty() {
-                out.push_str(&format!("\n\n  {}", truncate(d.trim(), 200)));
-            }
+            && !d.is_empty()
+        {
+            out.push_str(&format!("\n\n  {}", truncate(d.trim(), 200)));
+        }
         out
     }
 
@@ -625,10 +608,7 @@ impl PrettyPrint for Attachment {
         if let Some(ref c) = self.creator {
             out.push_str(&format!("\n  Creator:  {}", c.display_name));
         }
-        out.push_str(&format!(
-            "\n  Created:  {}",
-            short_date(&self.created_at)
-        ));
+        out.push_str(&format!("\n  Created:  {}", short_date(&self.created_at)));
         out
     }
 

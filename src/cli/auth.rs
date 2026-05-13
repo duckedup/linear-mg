@@ -47,10 +47,7 @@ impl AuthCommand {
 
                 match format {
                     OutputFormat::Pretty => {
-                        println!(
-                            "Authenticated as {} <{}>",
-                            user.display_name, user.email
-                        );
+                        println!("Authenticated as {} <{}>", user.display_name, user.email);
                         println!("API key saved to {}", Config::path().display());
                     }
                     _ => {
@@ -74,10 +71,7 @@ impl AuthCommand {
                 match format {
                     OutputFormat::Pretty => println!("API key removed."),
                     _ => {
-                        print_output(
-                            &serde_json::json!({ "message": "API key removed" }),
-                            format,
-                        )?;
+                        print_output(&serde_json::json!({ "message": "API key removed" }), format)?;
                     }
                 }
                 Ok(())
