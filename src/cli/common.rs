@@ -3,9 +3,13 @@ use clap::Args;
 
 #[derive(Args, Debug)]
 pub struct GlobalArgs {
-    /// Output format
-    #[arg(long, short = 'o', default_value = "json", global = true)]
-    pub format: OutputFormat,
+    /// Output as JSON
+    #[arg(long, global = true)]
+    pub json: bool,
+
+    /// Output as pretty-printed JSON
+    #[arg(long, global = true)]
+    pub json_pretty: bool,
 
     /// Linear API key (overrides config and env)
     #[arg(long, env = "LINEAR_API_KEY", global = true, hide_env_values = true)]
@@ -14,6 +18,18 @@ pub struct GlobalArgs {
     /// Enable verbose output
     #[arg(long, short = 'v', global = true)]
     pub verbose: bool,
+}
+
+impl GlobalArgs {
+    pub fn output_format(&self) -> OutputFormat {
+        if self.json_pretty {
+            OutputFormat::JsonPretty
+        } else if self.json {
+            OutputFormat::Json
+        } else {
+            OutputFormat::Pretty
+        }
+    }
 }
 
 #[derive(Args, Debug, Clone)]

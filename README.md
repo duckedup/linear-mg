@@ -2,20 +2,18 @@
 
 A Rust CLI and library for the [Linear](https://linear.app) GraphQL API, designed for AI agent consumption.
 
-All output is structured JSON by default, with distinct exit codes per error category, making it straightforward to parse from scripts and agent toolchains.
+Output is human-readable by default, with `--json` for structured JSON output with distinct exit codes per error category, making it straightforward to parse from scripts and agent toolchains.
 
 ## Install
 
 ```sh
-cargo install linear-mg
+cargo binstall linear-mg
 ```
 
-Or build from source:
+Or from source:
 
 ```sh
-git clone https://github.com/duckedup/linear-mg.git
-cd linear-mg
-cargo build --release
+cargo install linear-mg
 ```
 
 ## Development
@@ -48,22 +46,27 @@ CI runs `just check` on every pull request and requires a version bump in `Cargo
 
 ## Authentication
 
-Set your Linear API key via environment variable (recommended) or config file.
+```sh
+# Interactive setup — prompts for your API key and validates it
+linear-mg auth init
 
-**Environment variable:**
+# Or pass the key directly
+linear-mg auth init --key lin_api_xxxxx
+
+# Check who you're authenticated as
+linear-mg auth status
+
+# Remove stored credentials
+linear-mg auth revoke
+```
+
+You can also set your API key via environment variable:
 
 ```sh
 export LINEAR_API_KEY=lin_api_xxxxx
 ```
 
-**Config file:**
-
-```sh
-linear-mg auth login --key lin_api_xxxxx
-# Stores to ~/.config/linear-mg/config.toml
-```
-
-**Per-command override:**
+Or override per-command:
 
 ```sh
 linear-mg --api-key lin_api_xxxxx issues list
@@ -92,7 +95,7 @@ Commands:
   attachments  Manage attachments
 
 Options:
-  -o, --format <FORMAT>    Output format: json (default), json-pretty
+      --json               Output as JSON
       --api-key <API_KEY>  Linear API key
   -v, --verbose            Enable debug logging
 ```
@@ -210,21 +213,29 @@ linear-mg issues list --order-by updated-at
 
 ## Output Format
 
-All output is JSON by default. Use `--format json-pretty` for indented output.
+Output is human-readable by default. Use `--json` for structured JSON output.
 
-**List responses** include pagination info:
+```sh
+# Pretty (default)
+linear-mg issues list --team ENG
+
+# JSON for scripts and agents
+linear-mg issues list --team ENG --json
+```
+
+**List responses** (JSON) include pagination info:
 
 ```json
 {
   "nodes": [ ... ],
-  "page_info": {
-    "has_next_page": false,
-    "end_cursor": "abc123"
+  "pageInfo": {
+    "hasNextPage": false,
+    "endCursor": "abc123"
   }
 }
 ```
 
-**Mutation responses** include a success flag:
+**Mutation responses** (JSON) include a success flag:
 
 ```json
 {
@@ -233,11 +244,7 @@ All output is JSON by default. Use `--format json-pretty` for indented output.
 }
 ```
 
-**Errors** are written to stderr as JSON with distinct exit codes:
-
-```json
-{"error": {"type": "not_found", "message": "Not found: ..."}}
-```
+**Errors** are written to stderr with distinct exit codes:
 
 | Exit Code | Meaning |
 |-----------|---------|
@@ -248,43 +255,6 @@ All output is JSON by default. Use `--format json-pretty` for indented output.
 | 4 | Not found |
 | 5 | Invalid input |
 | 6 | API / GraphQL error |
-
-## Use as a Library
-
-Add `linear-mg` as a dependency in your `Cargo.toml`:
-
-```toml
-[dependencies]
-linear-mg = "0.1"
-```
-
-```rust
-use linear_mg::client::LinearClient;
-use linear_mg::graphql::issues::queries::*;
-use linear_mg::graphql::issues::types::*;
-use cynic::QueryBuilder;
-
-#[tokio::main]
-async fn main() {
-    let client = LinearClient::new("lin_api_xxxxx".to_string());
-
-    // Get an issue
-    let op = IssueByIdQuery::build(IssueByIdVariables {
-        id: "ENG-123".to_string(),
-    });
-    let data = client.run_query(op).await.unwrap();
-    println!("{}", data.issue.title);
-}
-```
-
-## Schema Updates
-
-The Linear GraphQL schema is checked in at `schema/linear.graphql`. To update it:
-
-```sh
-just refresh-schema
-cargo build  # Recompiles with the new schema
-```
 
 ## License
 

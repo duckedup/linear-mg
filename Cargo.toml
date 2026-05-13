@@ -1,6 +1,6 @@
 [package]
 name = "linear-mg"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2024"
 rust-version = "1.95"
 description = "A CLI tool for the Linear GraphQL API, designed for AI agent consumption"
@@ -9,6 +9,14 @@ repository = "https://github.com/duckedup/linear-mg"
 keywords = ["linear", "graphql", "cli", "project-management", "api"]
 categories = ["command-line-utilities", "development-tools"]
 readme = "README.md"
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-{ target }.tar.gz"
+pkg-fmt = "tgz"
+
+[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-{ target }.zip"
+pkg-fmt = "zip"
 
 [dependencies]
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }

@@ -8,7 +8,7 @@ fn test_help() {
         .arg("--help")
         .assert()
         .success()
-        .stdout(predicate::str::contains("Linear API CLI for AI agents"))
+        .stdout(predicate::str::contains("CLI for the Linear API"))
         .stdout(predicate::str::contains("issues"))
         .stdout(predicate::str::contains("teams"))
         .stdout(predicate::str::contains("auth"));
@@ -26,11 +26,12 @@ fn test_version() {
 
 #[test]
 fn test_no_api_key_error() {
+    let tmp = tempfile::tempdir().unwrap();
     Command::cargo_bin("linear-mg")
         .unwrap()
-        .arg("issues")
-        .arg("list")
+        .args(["issues", "list", "--json"])
         .env_remove("LINEAR_API_KEY")
+        .env("HOME", tmp.path())
         .assert()
         .failure()
         .code(2)
