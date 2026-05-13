@@ -1,15 +1,11 @@
 use crate::cli::common::PaginationArgs;
-use crate::client::paginator::paginate;
 use crate::client::LinearClient;
+use crate::client::paginator::paginate;
 use crate::error::CliError;
 use crate::graphql::common::{ListResponse, MutationResponse};
-use crate::graphql::milestones::mutations::*;
-use crate::graphql::milestones::queries::*;
-use crate::graphql::milestones::types::*;
-use crate::graphql::scalars::TimelessDate;
-use crate::output::{print_output, OutputFormat};
+use crate::graphql::milestones::ProjectMilestone;
+use crate::output::{OutputFormat, print_output};
 use clap::Subcommand;
-use cynic::{MutationBuilder, QueryBuilder};
 
 #[derive(clap::Args, Debug)]
 pub struct MilestonesCommand {
@@ -19,18 +15,16 @@ pub struct MilestonesCommand {
 
 #[derive(Subcommand, Debug)]
 pub enum MilestonesAction {
-    /// List project milestones
     List {
         #[command(flatten)]
         pagination: PaginationArgs,
     },
-    /// Get a single milestone by ID
-    Get { id: String },
-    /// Create a new milestone
+    Get {
+        id: String,
+    },
     Create {
         #[arg(long)]
         name: String,
-        /// Project ID
         #[arg(long)]
         project: String,
         #[arg(long)]
@@ -38,7 +32,6 @@ pub enum MilestonesAction {
         #[arg(long)]
         target_date: Option<String>,
     },
-    /// Update a milestone
     Update {
         id: String,
         #[arg(long)]
@@ -55,52 +48,39 @@ impl MilestonesCommand {
         match self.action {
             MilestonesAction::List { pagination } => {
                 let params = pagination.to_paginator_params();
-                let include_archived = Some(pagination.include_archived);
-                let order_by = Some(pagination.order_by.into());
-
+                let ia = pagination.include_archived;
+                let ob = pagination.order_by.as_str().to_string();
                 let result: ListResponse<ProjectMilestone> =
-                    paginate(client, &params, |c, page_size, cursor| {
-                        Box::pin(async move {
-                            let vars = ProjectMilestonesListVariables {
-                                first: Some(page_size),
-                                after: cursor,
-                                include_archived,
-                                order_by,
-                            };
-                            let op = ProjectMilestonesListQuery::build(vars);
-                            let data = c.run_query(op).await?;
-                            Ok(data.project_milestones)
-                        })
+                    paginate(client, &params, |c, ps, cur| {
+                        let ob = ob.clone();
+                        Box::pin(async move { c.list_milestones(ps, cur, ia, &ob).await })
                     })
                     .await?;
                 print_output(&result, format)
             }
-            MilestonesAction::Get { id } => {
-                let op = ProjectMilestoneByIdQuery::build(ProjectMilestoneByIdVariables { id });
-                let data = client.run_query(op).await?;
-                print_output(&data.project_milestone, format)
-            }
+            MilestonesAction::Get { id } => print_output(&client.get_milestone(&id).await?, format),
             MilestonesAction::Create {
                 name,
                 project,
                 description,
                 target_date,
             } => {
-                let input = ProjectMilestoneCreateInput {
-                    name,
-                    project_id: project,
-                    description,
-                    target_date: target_date.map(TimelessDate::from),
-                };
-                let op = ProjectMilestoneCreateMutation::build(ProjectMilestoneCreateVariables {
-                    input,
-                });
-                let data = client.run_query(op).await?;
-                let resp = MutationResponse {
-                    success: data.project_milestone_create.success,
-                    data: Some(data.project_milestone_create.project_milestone),
-                };
-                print_output(&resp, format)
+                let mut input = serde_json::json!({ "name": name, "projectId": project });
+                let obj = input.as_object_mut().unwrap();
+                if let Some(v) = description {
+                    obj.insert("description".into(), v.into());
+                }
+                if let Some(v) = target_date {
+                    obj.insert("targetDate".into(), v.into());
+                }
+                let p = client.create_milestone(input).await?;
+                print_output(
+                    &MutationResponse {
+                        success: p.success,
+                        data: Some(p.project_milestone),
+                    },
+                    format,
+                )
             }
             MilestonesAction::Update {
                 id,
@@ -108,21 +88,25 @@ impl MilestonesCommand {
                 description,
                 target_date,
             } => {
-                let input = ProjectMilestoneUpdateInput {
-                    name,
-                    description,
-                    target_date: target_date.map(TimelessDate::from),
-                };
-                let op = ProjectMilestoneUpdateMutation::build(ProjectMilestoneUpdateVariables {
-                    id,
-                    input,
-                });
-                let data = client.run_query(op).await?;
-                let resp = MutationResponse {
-                    success: data.project_milestone_update.success,
-                    data: Some(data.project_milestone_update.project_milestone),
-                };
-                print_output(&resp, format)
+                let mut input = serde_json::json!({});
+                let obj = input.as_object_mut().unwrap();
+                if let Some(v) = name {
+                    obj.insert("name".into(), v.into());
+                }
+                if let Some(v) = description {
+                    obj.insert("description".into(), v.into());
+                }
+                if let Some(v) = target_date {
+                    obj.insert("targetDate".into(), v.into());
+                }
+                let p = client.update_milestone(&id, input).await?;
+                print_output(
+                    &MutationResponse {
+                        success: p.success,
+                        data: Some(p.project_milestone),
+                    },
+                    format,
+                )
             }
         }
     }

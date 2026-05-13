@@ -1,10 +1,7 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[allow(unused_imports)]
-use crate::graphql::scalars::schema;
-
-#[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
-#[cynic(schema = "linear", graphql_type = "PageInfo")]
+#[derive(Deserialize, Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct PageInfo {
     pub has_next_page: bool,
     pub has_previous_page: bool,
@@ -12,30 +9,22 @@ pub struct PageInfo {
     pub start_cursor: Option<String>,
 }
 
-#[derive(cynic::Enum, Debug, Clone, Copy)]
-#[cynic(
-    schema = "linear",
-    graphql_type = "PaginationOrderBy",
-    rename_all = "camelCase"
-)]
-pub enum PaginationOrderBy {
-    CreatedAt,
-    UpdatedAt,
-}
-
-pub trait Paginatable {
-    type Node;
-    fn page_info(&self) -> &PageInfo;
-    fn into_nodes(self) -> Vec<Self::Node>;
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct Connection<T> {
+    pub nodes: Vec<T>,
+    pub page_info: PageInfo,
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ListResponse<T: Serialize> {
     pub nodes: Vec<T>,
     pub page_info: PageInfoResponse,
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PageInfoResponse {
     pub has_next_page: bool,
     pub end_cursor: Option<String>,

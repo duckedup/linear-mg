@@ -1,5 +1,3 @@
-pub mod json;
-
 use crate::error::CliError;
 
 #[derive(Clone, Debug, Default)]

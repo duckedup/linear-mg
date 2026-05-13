@@ -1,10 +1,8 @@
 use crate::client::LinearClient;
 use crate::config::{AuthConfig, Config};
 use crate::error::CliError;
-use crate::graphql::users::queries::ViewerQuery;
-use crate::output::{print_output, OutputFormat};
+use crate::output::{OutputFormat, print_output};
 use clap::Subcommand;
-use cynic::QueryBuilder;
 
 #[derive(clap::Args, Debug)]
 pub struct AuthCommand {
@@ -16,7 +14,6 @@ pub struct AuthCommand {
 pub enum AuthAction {
     /// Store an API key for authentication
     Login {
-        /// The Linear API key
         #[arg(long)]
         key: String,
     },
@@ -40,16 +37,14 @@ impl AuthCommand {
                 let mut config = Config::load()?;
                 config.auth = None;
                 config.save()?;
-                let msg = serde_json::json!({ "message": "API key removed" });
-                print_output(&msg, format)
+                print_output(&serde_json::json!({ "message": "API key removed" }), format)
             }
             AuthAction::Whoami => {
                 let config = Config::load()?;
                 let api_key = crate::config::auth::resolve_api_key(None, config.api_key())?;
                 let client = LinearClient::new(api_key);
-                let op = ViewerQuery::build(());
-                let data = client.run_query(op).await?;
-                print_output(&data.viewer, format)
+                let user = client.get_viewer().await?;
+                print_output(&user, format)
             }
         }
     }

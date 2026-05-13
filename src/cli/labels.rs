@@ -1,14 +1,11 @@
 use crate::cli::common::PaginationArgs;
-use crate::client::paginator::paginate;
 use crate::client::LinearClient;
+use crate::client::paginator::paginate;
 use crate::error::CliError;
 use crate::graphql::common::{ListResponse, MutationResponse};
-use crate::graphql::labels::mutations::*;
-use crate::graphql::labels::queries::*;
-use crate::graphql::labels::types::*;
-use crate::output::{print_output, OutputFormat};
+use crate::graphql::labels::IssueLabel;
+use crate::output::{OutputFormat, print_output};
 use clap::Subcommand;
-use cynic::{MutationBuilder, QueryBuilder};
 
 #[derive(clap::Args, Debug)]
 pub struct LabelsCommand {
@@ -18,12 +15,10 @@ pub struct LabelsCommand {
 
 #[derive(Subcommand, Debug)]
 pub enum LabelsAction {
-    /// List issue labels
     List {
         #[command(flatten)]
         pagination: PaginationArgs,
     },
-    /// Create a new label
     Create {
         #[arg(long)]
         name: String,
@@ -31,10 +26,8 @@ pub enum LabelsAction {
         color: Option<String>,
         #[arg(long)]
         description: Option<String>,
-        /// Scope to a team (team ID)
         #[arg(long)]
         team: Option<String>,
-        /// Parent label ID (for label groups)
         #[arg(long)]
         parent: Option<String>,
     },
@@ -45,24 +38,13 @@ impl LabelsCommand {
         match self.action {
             LabelsAction::List { pagination } => {
                 let params = pagination.to_paginator_params();
-                let include_archived = Some(pagination.include_archived);
-                let order_by = Some(pagination.order_by.into());
-
-                let result: ListResponse<IssueLabel> =
-                    paginate(client, &params, |c, page_size, cursor| {
-                        Box::pin(async move {
-                            let vars = IssueLabelsListVariables {
-                                first: Some(page_size),
-                                after: cursor,
-                                include_archived,
-                                order_by,
-                            };
-                            let op = IssueLabelsListQuery::build(vars);
-                            let data = c.run_query(op).await?;
-                            Ok(data.issue_labels)
-                        })
-                    })
-                    .await?;
+                let ia = pagination.include_archived;
+                let ob = pagination.order_by.as_str().to_string();
+                let result: ListResponse<IssueLabel> = paginate(client, &params, |c, ps, cur| {
+                    let ob = ob.clone();
+                    Box::pin(async move { c.list_labels(ps, cur, ia, &ob).await })
+                })
+                .await?;
                 print_output(&result, format)
             }
             LabelsAction::Create {
@@ -72,20 +54,28 @@ impl LabelsCommand {
                 team,
                 parent,
             } => {
-                let input = IssueLabelCreateInput {
-                    name,
-                    color,
-                    description,
-                    team_id: team,
-                    parent_id: parent,
-                };
-                let op = IssueLabelCreateMutation::build(IssueLabelCreateVariables { input });
-                let data = client.run_query(op).await?;
-                let resp = MutationResponse {
-                    success: data.issue_label_create.success,
-                    data: Some(data.issue_label_create.issue_label),
-                };
-                print_output(&resp, format)
+                let mut input = serde_json::json!({ "name": name });
+                let obj = input.as_object_mut().unwrap();
+                if let Some(v) = color {
+                    obj.insert("color".into(), v.into());
+                }
+                if let Some(v) = description {
+                    obj.insert("description".into(), v.into());
+                }
+                if let Some(v) = team {
+                    obj.insert("teamId".into(), v.into());
+                }
+                if let Some(v) = parent {
+                    obj.insert("parentId".into(), v.into());
+                }
+                let p = client.create_label(input).await?;
+                print_output(
+                    &MutationResponse {
+                        success: p.success,
+                        data: Some(p.issue_label),
+                    },
+                    format,
+                )
             }
         }
     }

@@ -1,4 +1,3 @@
-use crate::graphql::common::PaginationOrderBy;
 use crate::output::OutputFormat;
 use clap::Args;
 
@@ -46,11 +45,11 @@ pub enum OrderBy {
     UpdatedAt,
 }
 
-impl From<OrderBy> for PaginationOrderBy {
-    fn from(o: OrderBy) -> Self {
-        match o {
-            OrderBy::CreatedAt => PaginationOrderBy::CreatedAt,
-            OrderBy::UpdatedAt => PaginationOrderBy::UpdatedAt,
+impl OrderBy {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::CreatedAt => "createdAt",
+            Self::UpdatedAt => "updatedAt",
         }
     }
 }
@@ -61,7 +60,7 @@ impl PaginationArgs {
             limit: Some(self.limit),
             after: self.after.clone(),
             all: self.all,
-            page_size: std::cmp::min(self.limit.max(1), 250) as i32,
+            page_size: std::cmp::min(self.limit.max(1), 250),
         }
     }
 }

@@ -1,14 +1,11 @@
 use crate::cli::common::PaginationArgs;
-use crate::client::paginator::paginate;
 use crate::client::LinearClient;
+use crate::client::paginator::paginate;
 use crate::error::CliError;
-use crate::graphql::attachments::mutations::*;
-use crate::graphql::attachments::queries::*;
-use crate::graphql::attachments::types::*;
+use crate::graphql::attachments::Attachment;
 use crate::graphql::common::{ListResponse, MutationResponse};
-use crate::output::{print_output, OutputFormat};
+use crate::output::{OutputFormat, print_output};
 use clap::Subcommand;
-use cynic::{MutationBuilder, QueryBuilder};
 
 #[derive(clap::Args, Debug)]
 pub struct AttachmentsCommand {
@@ -18,16 +15,14 @@ pub struct AttachmentsCommand {
 
 #[derive(Subcommand, Debug)]
 pub enum AttachmentsAction {
-    /// List attachments
     List {
         #[command(flatten)]
         pagination: PaginationArgs,
     },
-    /// Get a single attachment by ID
-    Get { id: String },
-    /// Create an attachment on an issue
+    Get {
+        id: String,
+    },
     Create {
-        /// Issue ID or identifier
         #[arg(long)]
         issue: String,
         #[arg(long)]
@@ -39,7 +34,6 @@ pub enum AttachmentsAction {
         #[arg(long)]
         icon_url: Option<String>,
     },
-    /// Update an attachment
     Update {
         id: String,
         #[arg(long)]
@@ -49,8 +43,9 @@ pub enum AttachmentsAction {
         #[arg(long)]
         icon_url: Option<String>,
     },
-    /// Delete an attachment
-    Delete { id: String },
+    Delete {
+        id: String,
+    },
 }
 
 impl AttachmentsCommand {
@@ -58,30 +53,17 @@ impl AttachmentsCommand {
         match self.action {
             AttachmentsAction::List { pagination } => {
                 let params = pagination.to_paginator_params();
-                let include_archived = Some(pagination.include_archived);
-                let order_by = Some(pagination.order_by.into());
-
-                let result: ListResponse<Attachment> =
-                    paginate(client, &params, |c, page_size, cursor| {
-                        Box::pin(async move {
-                            let vars = AttachmentsListVariables {
-                                first: Some(page_size),
-                                after: cursor,
-                                include_archived,
-                                order_by,
-                            };
-                            let op = AttachmentsListQuery::build(vars);
-                            let data = c.run_query(op).await?;
-                            Ok(data.attachments)
-                        })
-                    })
-                    .await?;
+                let ia = pagination.include_archived;
+                let ob = pagination.order_by.as_str().to_string();
+                let result: ListResponse<Attachment> = paginate(client, &params, |c, ps, cur| {
+                    let ob = ob.clone();
+                    Box::pin(async move { c.list_attachments(ps, cur, ia, &ob).await })
+                })
+                .await?;
                 print_output(&result, format)
             }
             AttachmentsAction::Get { id } => {
-                let op = AttachmentByIdQuery::build(AttachmentByIdVariables { id });
-                let data = client.run_query(op).await?;
-                print_output(&data.attachment, format)
+                print_output(&client.get_attachment(&id).await?, format)
             }
             AttachmentsAction::Create {
                 issue,
@@ -90,20 +72,22 @@ impl AttachmentsCommand {
                 subtitle,
                 icon_url,
             } => {
-                let input = AttachmentCreateInput {
-                    issue_id: issue,
-                    title,
-                    url,
-                    subtitle,
-                    icon_url,
-                };
-                let op = AttachmentCreateMutation::build(AttachmentCreateVariables { input });
-                let data = client.run_query(op).await?;
-                let resp = MutationResponse {
-                    success: data.attachment_create.success,
-                    data: Some(data.attachment_create.attachment),
-                };
-                print_output(&resp, format)
+                let mut input = serde_json::json!({ "issueId": issue, "title": title, "url": url });
+                let obj = input.as_object_mut().unwrap();
+                if let Some(v) = subtitle {
+                    obj.insert("subtitle".into(), v.into());
+                }
+                if let Some(v) = icon_url {
+                    obj.insert("iconUrl".into(), v.into());
+                }
+                let p = client.create_attachment(input).await?;
+                print_output(
+                    &MutationResponse {
+                        success: p.success,
+                        data: Some(p.attachment),
+                    },
+                    format,
+                )
             }
             AttachmentsAction::Update {
                 id,
@@ -111,27 +95,32 @@ impl AttachmentsCommand {
                 subtitle,
                 icon_url,
             } => {
-                let input = AttachmentUpdateInput {
-                    title,
-                    subtitle,
-                    icon_url,
-                };
-                let op = AttachmentUpdateMutation::build(AttachmentUpdateVariables { id, input });
-                let data = client.run_query(op).await?;
-                let resp = MutationResponse {
-                    success: data.attachment_update.success,
-                    data: Some(data.attachment_update.attachment),
-                };
-                print_output(&resp, format)
+                let mut input = serde_json::json!({ "title": title });
+                let obj = input.as_object_mut().unwrap();
+                if let Some(v) = subtitle {
+                    obj.insert("subtitle".into(), v.into());
+                }
+                if let Some(v) = icon_url {
+                    obj.insert("iconUrl".into(), v.into());
+                }
+                let p = client.update_attachment(&id, input).await?;
+                print_output(
+                    &MutationResponse {
+                        success: p.success,
+                        data: Some(p.attachment),
+                    },
+                    format,
+                )
             }
             AttachmentsAction::Delete { id } => {
-                let op = AttachmentDeleteMutation::build(AttachmentDeleteVariables { id });
-                let data = client.run_query(op).await?;
-                let resp = MutationResponse::<()> {
-                    success: data.attachment_delete.success,
-                    data: None,
-                };
-                print_output(&resp, format)
+                let p = client.delete_attachment(&id).await?;
+                print_output(
+                    &MutationResponse::<()> {
+                        success: p.success,
+                        data: None,
+                    },
+                    format,
+                )
             }
         }
     }

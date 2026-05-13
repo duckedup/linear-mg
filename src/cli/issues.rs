@@ -1,15 +1,11 @@
 use crate::cli::common::PaginationArgs;
-use crate::client::paginator::paginate;
 use crate::client::LinearClient;
+use crate::client::paginator::paginate;
 use crate::error::CliError;
 use crate::graphql::common::{ListResponse, MutationResponse};
-use crate::graphql::issues::mutations::*;
-use crate::graphql::issues::queries::*;
-use crate::graphql::issues::types::*;
-use crate::graphql::scalars::TimelessDate;
-use crate::output::{print_output, OutputFormat};
+use crate::graphql::issues::Issue;
+use crate::output::{OutputFormat, print_output};
 use clap::Subcommand;
-use cynic::{MutationBuilder, QueryBuilder};
 
 #[derive(clap::Args, Debug)]
 pub struct IssuesCommand {
@@ -46,52 +42,36 @@ pub enum IssuesAction {
         priority: Option<f64>,
     },
     /// Get a single issue by ID or identifier (e.g., "ENG-123")
-    Get {
-        /// Issue ID (UUID) or identifier
-        id: String,
-    },
+    Get { id: String },
     /// Create a new issue
     Create {
-        /// Title of the issue
         #[arg(long)]
         title: String,
-        /// Team ID or key
         #[arg(long)]
         team: String,
-        /// Issue description (markdown)
         #[arg(long)]
         description: Option<String>,
-        /// Assignee user ID
         #[arg(long)]
         assignee: Option<String>,
-        /// Priority (0-4)
         #[arg(long)]
         priority: Option<i32>,
-        /// State ID
         #[arg(long)]
         state: Option<String>,
-        /// Project ID
         #[arg(long)]
         project: Option<String>,
-        /// Cycle ID
         #[arg(long)]
         cycle: Option<String>,
-        /// Label IDs (comma-separated)
         #[arg(long, value_delimiter = ',')]
         labels: Vec<String>,
-        /// Due date (YYYY-MM-DD)
         #[arg(long)]
         due_date: Option<String>,
-        /// Estimate points
         #[arg(long)]
         estimate: Option<i32>,
-        /// Parent issue ID or identifier
         #[arg(long)]
         parent: Option<String>,
     },
     /// Update an existing issue
     Update {
-        /// Issue ID or identifier
         id: String,
         #[arg(long)]
         title: Option<String>,
@@ -107,10 +87,8 @@ pub enum IssuesAction {
         project: Option<String>,
         #[arg(long)]
         cycle: Option<String>,
-        /// Label IDs to add (comma-separated)
         #[arg(long, value_delimiter = ',')]
         add_labels: Vec<String>,
-        /// Label IDs to remove (comma-separated)
         #[arg(long, value_delimiter = ',')]
         remove_labels: Vec<String>,
         #[arg(long)]
@@ -123,18 +101,11 @@ pub enum IssuesAction {
         team: Option<String>,
     },
     /// Archive an issue
-    Archive {
-        /// Issue ID or identifier
-        id: String,
-    },
+    Archive { id: String },
     /// Delete (trash) an issue
-    Delete {
-        /// Issue ID or identifier
-        id: String,
-    },
+    Delete { id: String },
     /// Search issues by text
     Search {
-        /// Search query
         query: String,
         #[command(flatten)]
         pagination: PaginationArgs,
@@ -154,35 +125,26 @@ impl IssuesCommand {
                 cycle,
                 priority,
             } => {
-                let filter =
-                    build_issue_filter(team, assignee, state, label, project, cycle, priority);
+                let filter = build_filter(team, assignee, state, label, project, cycle, priority);
                 let params = pagination.to_paginator_params();
-                let include_archived = Some(pagination.include_archived);
-                let order_by = Some(pagination.order_by.into());
+                let include_archived = pagination.include_archived;
+                let order_by = pagination.order_by.as_str().to_string();
 
                 let result: ListResponse<Issue> =
                     paginate(client, &params, |c, page_size, cursor| {
                         let filter = filter.clone();
+                        let order_by = order_by.clone();
                         Box::pin(async move {
-                            let vars = IssuesListVariables {
-                                first: Some(page_size),
-                                after: cursor,
-                                filter,
-                                include_archived,
-                                order_by,
-                            };
-                            let op = IssuesListQuery::build(vars);
-                            let data = c.run_query(op).await?;
-                            Ok(data.issues)
+                            c.list_issues(page_size, cursor, filter, include_archived, &order_by)
+                                .await
                         })
                     })
                     .await?;
                 print_output(&result, format)
             }
             IssuesAction::Get { id } => {
-                let op = IssueByIdQuery::build(IssueByIdVariables { id });
-                let data = client.run_query(op).await?;
-                print_output(&data.issue, format)
+                let issue = client.get_issue(&id).await?;
+                print_output(&issue, format)
             }
             IssuesAction::Create {
                 title,
@@ -198,29 +160,43 @@ impl IssuesCommand {
                 estimate,
                 parent,
             } => {
-                let input = IssueCreateInput {
-                    team_id: team,
-                    title: Some(title),
-                    description,
-                    assignee_id: assignee,
-                    priority,
-                    state_id: state,
-                    project_id: project,
-                    cycle_id: cycle,
-                    label_ids: if labels.is_empty() {
-                        None
-                    } else {
-                        Some(labels)
-                    },
-                    due_date: due_date.map(TimelessDate::from),
-                    estimate,
-                    parent_id: parent,
-                };
-                let op = IssueCreateMutation::build(IssueCreateVariables { input });
-                let data = client.run_query(op).await?;
+                let mut input = serde_json::json!({ "teamId": team, "title": title });
+                let obj = input.as_object_mut().unwrap();
+                if let Some(v) = description {
+                    obj.insert("description".into(), v.into());
+                }
+                if let Some(v) = assignee {
+                    obj.insert("assigneeId".into(), v.into());
+                }
+                if let Some(v) = priority {
+                    obj.insert("priority".into(), v.into());
+                }
+                if let Some(v) = state {
+                    obj.insert("stateId".into(), v.into());
+                }
+                if let Some(v) = project {
+                    obj.insert("projectId".into(), v.into());
+                }
+                if let Some(v) = cycle {
+                    obj.insert("cycleId".into(), v.into());
+                }
+                if !labels.is_empty() {
+                    obj.insert("labelIds".into(), labels.into());
+                }
+                if let Some(v) = due_date {
+                    obj.insert("dueDate".into(), v.into());
+                }
+                if let Some(v) = estimate {
+                    obj.insert("estimate".into(), v.into());
+                }
+                if let Some(v) = parent {
+                    obj.insert("parentId".into(), v.into());
+                }
+
+                let payload = client.create_issue(input).await?;
                 let resp = MutationResponse {
-                    success: data.issue_create.success,
-                    data: data.issue_create.issue,
+                    success: payload.success,
+                    data: payload.issue,
                 };
                 print_output(&resp, format)
             }
@@ -240,76 +216,84 @@ impl IssuesCommand {
                 parent,
                 team,
             } => {
-                let input = IssueUpdateInput {
-                    title,
-                    description,
-                    assignee_id: assignee,
-                    priority,
-                    state_id: state,
-                    project_id: project,
-                    cycle_id: cycle,
-                    label_ids: None,
-                    added_label_ids: if add_labels.is_empty() {
-                        None
-                    } else {
-                        Some(add_labels)
-                    },
-                    removed_label_ids: if remove_labels.is_empty() {
-                        None
-                    } else {
-                        Some(remove_labels)
-                    },
-                    due_date: due_date.map(TimelessDate::from),
-                    estimate,
-                    parent_id: parent,
-                    team_id: team,
-                };
-                let op = IssueUpdateMutation::build(IssueUpdateVariables { id, input });
-                let data = client.run_query(op).await?;
+                let mut input = serde_json::json!({});
+                let obj = input.as_object_mut().unwrap();
+                if let Some(v) = title {
+                    obj.insert("title".into(), v.into());
+                }
+                if let Some(v) = description {
+                    obj.insert("description".into(), v.into());
+                }
+                if let Some(v) = assignee {
+                    obj.insert("assigneeId".into(), v.into());
+                }
+                if let Some(v) = priority {
+                    obj.insert("priority".into(), v.into());
+                }
+                if let Some(v) = state {
+                    obj.insert("stateId".into(), v.into());
+                }
+                if let Some(v) = project {
+                    obj.insert("projectId".into(), v.into());
+                }
+                if let Some(v) = cycle {
+                    obj.insert("cycleId".into(), v.into());
+                }
+                if !add_labels.is_empty() {
+                    obj.insert("addedLabelIds".into(), add_labels.into());
+                }
+                if !remove_labels.is_empty() {
+                    obj.insert("removedLabelIds".into(), remove_labels.into());
+                }
+                if let Some(v) = due_date {
+                    obj.insert("dueDate".into(), v.into());
+                }
+                if let Some(v) = estimate {
+                    obj.insert("estimate".into(), v.into());
+                }
+                if let Some(v) = parent {
+                    obj.insert("parentId".into(), v.into());
+                }
+                if let Some(v) = team {
+                    obj.insert("teamId".into(), v.into());
+                }
+
+                let payload = client.update_issue(&id, input).await?;
                 let resp = MutationResponse {
-                    success: data.issue_update.success,
-                    data: data.issue_update.issue,
+                    success: payload.success,
+                    data: payload.issue,
                 };
                 print_output(&resp, format)
             }
             IssuesAction::Archive { id } => {
-                let op = IssueArchiveMutation::build(IssueArchiveVariables { id });
-                let data = client.run_query(op).await?;
+                let payload = client.archive_issue(&id).await?;
                 let resp = MutationResponse::<()> {
-                    success: data.issue_archive.success,
+                    success: payload.success,
                     data: None,
                 };
                 print_output(&resp, format)
             }
             IssuesAction::Delete { id } => {
-                let op = IssueDeleteMutation::build(IssueDeleteVariables { id });
-                let data = client.run_query(op).await?;
+                let payload = client.delete_issue(&id).await?;
                 let resp = MutationResponse::<()> {
-                    success: data.issue_delete.success,
+                    success: payload.success,
                     data: None,
                 };
                 print_output(&resp, format)
             }
             IssuesAction::Search { query, pagination } => {
                 let params = pagination.to_paginator_params();
-                let include_archived = Some(pagination.include_archived);
-                let order_by = Some(pagination.order_by.into());
-                let q = query;
+                let include_archived = pagination.include_archived;
+                let order_by = pagination.order_by.as_str().to_string();
+                let term = query;
 
                 let result: ListResponse<Issue> =
                     paginate(client, &params, |c, page_size, cursor| {
-                        let q = q.clone();
+                        let term = term.clone();
+                        let order_by = order_by.clone();
                         Box::pin(async move {
-                            let vars = IssueSearchVariables {
-                                query: Some(q),
-                                first: Some(page_size),
-                                after: cursor,
-                                include_archived,
-                                order_by,
-                            };
-                            let op = IssueSearchQuery::build(vars);
-                            let data = c.run_query(op).await?;
-                            Ok(data.issue_search)
+                            c.search_issues(&term, page_size, cursor, include_archived, &order_by)
+                                .await
                         })
                     })
                     .await?;
@@ -319,7 +303,7 @@ impl IssuesCommand {
     }
 }
 
-fn build_issue_filter(
+fn build_filter(
     team: Option<String>,
     assignee: Option<String>,
     state: Option<String>,
@@ -327,65 +311,42 @@ fn build_issue_filter(
     project: Option<String>,
     cycle: Option<String>,
     priority: Option<f64>,
-) -> Option<IssueFilter> {
-    let has_any = team.is_some()
-        || assignee.is_some()
-        || state.is_some()
-        || label.is_some()
-        || project.is_some()
-        || cycle.is_some()
-        || priority.is_some();
-
-    if !has_any {
-        return None;
+) -> Option<serde_json::Value> {
+    let mut filter = serde_json::Map::new();
+    if let Some(t) = team {
+        filter.insert(
+            "team".into(),
+            serde_json::json!({ "key": { "eqIgnoreCase": t } }),
+        );
+    }
+    if let Some(a) = assignee {
+        filter.insert("assignee".into(), serde_json::json!({ "id": { "eq": a } }));
+    }
+    if let Some(s) = state {
+        filter.insert(
+            "state".into(),
+            serde_json::json!({ "name": { "eqIgnoreCase": s } }),
+        );
+    }
+    if let Some(l) = label {
+        filter.insert(
+            "labels".into(),
+            serde_json::json!({ "name": { "eqIgnoreCase": l } }),
+        );
+    }
+    if let Some(p) = project {
+        filter.insert("project".into(), serde_json::json!({ "id": { "eq": p } }));
+    }
+    if let Some(c) = cycle {
+        filter.insert("cycle".into(), serde_json::json!({ "id": { "eq": c } }));
+    }
+    if let Some(p) = priority {
+        filter.insert("priority".into(), serde_json::json!({ "eq": p }));
     }
 
-    Some(IssueFilter {
-        team: team.map(|t| TeamFilter {
-            key: Some(StringComparator {
-                eq_ignore_case: Some(t),
-                ..Default::default()
-            }),
-            ..Default::default()
-        }),
-        assignee: assignee.map(|a| NullableUserFilter {
-            id: Some(IdComparator {
-                eq: Some(a.into()),
-                ..Default::default()
-            }),
-            ..Default::default()
-        }),
-        state: state.map(|s| WorkflowStateFilter {
-            name: Some(StringComparator {
-                eq_ignore_case: Some(s),
-                ..Default::default()
-            }),
-            ..Default::default()
-        }),
-        labels: label.map(|l| IssueLabelCollectionFilter {
-            name: Some(StringComparator {
-                eq_ignore_case: Some(l),
-                ..Default::default()
-            }),
-            ..Default::default()
-        }),
-        project: project.map(|p| NullableProjectFilter {
-            id: Some(IdComparator {
-                eq: Some(p.into()),
-                ..Default::default()
-            }),
-            ..Default::default()
-        }),
-        cycle: cycle.map(|c| NullableCycleFilter {
-            id: Some(IdComparator {
-                eq: Some(c.into()),
-                ..Default::default()
-            }),
-            ..Default::default()
-        }),
-        priority: priority.map(|p| NullableNumberComparator {
-            eq: Some(p),
-            ..Default::default()
-        }),
-    })
+    if filter.is_empty() {
+        None
+    } else {
+        Some(serde_json::Value::Object(filter))
+    }
 }

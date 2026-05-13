@@ -15,8 +15,8 @@ pub enum CliError {
         body: String,
     },
 
-    #[error("GraphQL errors: {}", format_graphql_errors(.0))]
-    GraphQlErrors(Vec<cynic::GraphQlError>),
+    #[error("GraphQL errors: {0:?}")]
+    GraphQlErrors(Vec<String>),
 
     #[error("No data returned from API")]
     NoData,
@@ -44,14 +44,6 @@ pub enum CliError {
 
     #[error("TOML serialize error: {0}")]
     TomlSerialize(#[from] toml::ser::Error),
-}
-
-fn format_graphql_errors(errors: &[cynic::GraphQlError]) -> String {
-    errors
-        .iter()
-        .map(|e| e.message.as_str())
-        .collect::<Vec<_>>()
-        .join("; ")
 }
 
 impl CliError {

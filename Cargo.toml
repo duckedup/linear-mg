@@ -1,8 +1,8 @@
 [package]
 name = "linear-mg"
-version = "0.1.1"
-edition = "2021"
-rust-version = "1.75"
+version = "0.1.2"
+edition = "2024"
+rust-version = "1.95"
 description = "A CLI tool for the Linear GraphQL API, designed for AI agent consumption"
 license = "MIT"
 repository = "https://github.com/duckedup/linear-mg"
@@ -11,7 +11,6 @@ categories = ["command-line-utilities", "development-tools"]
 readme = "README.md"
 
 [dependencies]
-cynic = "3"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 clap = { version = "4", features = ["derive", "env"] }
 tokio = { version = "1", features = ["full"] }
@@ -23,12 +22,8 @@ dirs = "6"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
-[build-dependencies]
-cynic-codegen = { version = "3", features = ["rkyv"] }
-
 [dev-dependencies]
 wiremock = "0.6"
-insta = { version = "1", features = ["json"] }
 assert_cmd = "2"
 predicates = "3"
 tempfile = "3"
