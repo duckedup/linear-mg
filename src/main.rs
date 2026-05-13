@@ -3,9 +3,11 @@ use linear_mg::cli::{Cli, Commands};
 use linear_mg::client::LinearClient;
 use linear_mg::config::{self, Config};
 use linear_mg::error::CliError;
+use linear_mg::output::OutputFormat;
 
 fn main() {
     let cli = Cli::parse();
+    let format = cli.global.output_format();
 
     if cli.global.verbose {
         tracing_subscriber::fmt()
@@ -14,17 +16,18 @@ fn main() {
     }
 
     let rt = tokio::runtime::Runtime::new().expect("failed to create tokio runtime");
-    let result = rt.block_on(dispatch(cli));
+    let result = rt.block_on(dispatch(cli, &format));
 
     if let Err(e) = result {
-        eprintln!("{}", e.to_json());
+        match format {
+            OutputFormat::Pretty => eprintln!("error: {e}"),
+            _ => eprintln!("{}", e.to_json()),
+        }
         std::process::exit(e.exit_code());
     }
 }
 
-async fn dispatch(cli: Cli) -> Result<(), CliError> {
-    let format = &cli.global.format;
-
+async fn dispatch(cli: Cli, format: &OutputFormat) -> Result<(), CliError> {
     match cli.command {
         Commands::Auth(cmd) => cmd.run(format).await,
         cmd => {
