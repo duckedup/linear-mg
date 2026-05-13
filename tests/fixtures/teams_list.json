@@ -1,0 +1,38 @@
+{
+  "data": {
+    "teams": {
+      "nodes": [
+        {
+          "id": "team-1",
+          "name": "Engineering",
+          "key": "ENG",
+          "description": "Engineering team",
+          "color": "#5E6AD2",
+          "icon": null,
+          "cyclesEnabled": true,
+          "createdAt": "2024-01-01T00:00:00.000Z",
+          "updatedAt": "2024-06-01T00:00:00.000Z",
+          "archivedAt": null
+        },
+        {
+          "id": "team-2",
+          "name": "Design",
+          "key": "DES",
+          "description": "Design team",
+          "color": "#26B5CE",
+          "icon": null,
+          "cyclesEnabled": false,
+          "createdAt": "2024-01-01T00:00:00.000Z",
+          "updatedAt": "2024-06-01T00:00:00.000Z",
+          "archivedAt": null
+        }
+      ],
+      "pageInfo": {
+        "hasNextPage": false,
+        "hasPreviousPage": false,
+        "endCursor": "cursor-end",
+        "startCursor": "cursor-start"
+      }
+    }
+  }
+}

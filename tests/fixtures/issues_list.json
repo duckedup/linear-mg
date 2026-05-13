@@ -1,0 +1,69 @@
+{
+  "data": {
+    "issues": {
+      "nodes": [
+        {
+          "id": "issue-1",
+          "identifier": "ENG-1",
+          "title": "Fix bug in login",
+          "description": "Login page crashes on submit",
+          "priority": 1,
+          "priorityLabel": "Urgent",
+          "estimate": 3,
+          "dueDate": "2024-07-01",
+          "createdAt": "2024-06-01T00:00:00.000Z",
+          "updatedAt": "2024-06-15T00:00:00.000Z",
+          "completedAt": null,
+          "canceledAt": null,
+          "archivedAt": null,
+          "startedAt": "2024-06-02T00:00:00.000Z",
+          "branchName": "fix/eng-1-login-bug",
+          "number": 1,
+          "url": "https://linear.app/test/issue/ENG-1",
+          "trashed": false,
+          "state": {
+            "id": "state-1",
+            "name": "In Progress",
+            "type": "started",
+            "color": "#F2C94C"
+          },
+          "assignee": {
+            "id": "user-123",
+            "name": "Test User",
+            "displayName": "Test User",
+            "email": "test@example.com"
+          },
+          "creator": {
+            "id": "user-456",
+            "name": "Other User",
+            "displayName": "Other User",
+            "email": "other@example.com"
+          },
+          "team": {
+            "id": "team-1",
+            "name": "Engineering",
+            "key": "ENG"
+          },
+          "project": null,
+          "cycle": null,
+          "parent": null,
+          "labels": {
+            "nodes": [
+              {
+                "id": "label-1",
+                "name": "Bug",
+                "color": "#EB5757"
+              }
+            ]
+          }
+        }
+      ],
+      "pageInfo": {
+        "hasNextPage": false,
+        "hasPreviousPage": false,
+        "endCursor": "cursor-end",
+        "startCursor": "cursor-start"
+      }
+    }
+  }
+}

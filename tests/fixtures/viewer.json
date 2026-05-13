@@ -1,0 +1,20 @@
+{
+  "data": {
+    "viewer": {
+      "id": "user-123",
+      "name": "Test User",
+      "displayName": "Test User",
+      "email": "test@example.com",
+      "active": true,
+      "admin": false,
+      "guest": false,
+      "isMe": true,
+      "avatarUrl": null,
+      "description": null,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-06-01T00:00:00.000Z",
+      "archivedAt": null,
+      "lastSeen": "2024-06-01T12:00:00.000Z"
+    }
+  }
+}
