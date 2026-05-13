@@ -49,17 +49,19 @@ impl LabelsCommand {
                 let order_by = Some(pagination.order_by.into());
 
                 let result: ListResponse<IssueLabel> =
-                    paginate(client, &params, |c, page_size, cursor| Box::pin(async move {
-                        let vars = IssueLabelsListVariables {
-                            first: Some(page_size),
-                            after: cursor,
-                            include_archived,
-                            order_by,
-                        };
-                        let op = IssueLabelsListQuery::build(vars);
-                        let data = c.run_query(op).await?;
-                        Ok(data.issue_labels)
-                    }))
+                    paginate(client, &params, |c, page_size, cursor| {
+                        Box::pin(async move {
+                            let vars = IssueLabelsListVariables {
+                                first: Some(page_size),
+                                after: cursor,
+                                include_archived,
+                                order_by,
+                            };
+                            let op = IssueLabelsListQuery::build(vars);
+                            let data = c.run_query(op).await?;
+                            Ok(data.issue_labels)
+                        })
+                    })
                     .await?;
                 print_output(&result, format)
             }

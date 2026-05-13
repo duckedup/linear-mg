@@ -63,17 +63,19 @@ impl DocumentsCommand {
                 let order_by = Some(pagination.order_by.into());
 
                 let result: ListResponse<Document> =
-                    paginate(client, &params, |c, page_size, cursor| Box::pin(async move {
-                        let vars = DocumentsListVariables {
-                            first: Some(page_size),
-                            after: cursor,
-                            include_archived,
-                            order_by,
-                        };
-                        let op = DocumentsListQuery::build(vars);
-                        let data = c.run_query(op).await?;
-                        Ok(data.documents)
-                    }))
+                    paginate(client, &params, |c, page_size, cursor| {
+                        Box::pin(async move {
+                            let vars = DocumentsListVariables {
+                                first: Some(page_size),
+                                after: cursor,
+                                include_archived,
+                                order_by,
+                            };
+                            let op = DocumentsListQuery::build(vars);
+                            let data = c.run_query(op).await?;
+                            Ok(data.documents)
+                        })
+                    })
                     .await?;
                 print_output(&result, format)
             }

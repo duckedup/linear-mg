@@ -10,7 +10,11 @@ pub struct CycleByIdVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Query", variables = "CycleByIdVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Query",
+    variables = "CycleByIdVariables"
+)]
 pub struct CycleByIdQuery {
     #[arguments(id: $id)]
     pub cycle: Cycle,
@@ -25,7 +29,11 @@ pub struct CyclesListVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Query", variables = "CyclesListVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Query",
+    variables = "CyclesListVariables"
+)]
 pub struct CyclesListQuery {
     #[arguments(
         first: $first,

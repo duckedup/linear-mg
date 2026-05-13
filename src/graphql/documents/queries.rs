@@ -10,7 +10,11 @@ pub struct DocumentByIdVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Query", variables = "DocumentByIdVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Query",
+    variables = "DocumentByIdVariables"
+)]
 pub struct DocumentByIdQuery {
     #[arguments(id: $id)]
     pub document: Document,
@@ -25,7 +29,11 @@ pub struct DocumentsListVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Query", variables = "DocumentsListVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Query",
+    variables = "DocumentsListVariables"
+)]
 pub struct DocumentsListQuery {
     #[arguments(
         first: $first,

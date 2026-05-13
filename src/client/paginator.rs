@@ -30,7 +30,11 @@ pub async fn paginate<'a, C, F, Node>(
 where
     C: Paginatable<Node = Node>,
     Node: serde::Serialize,
-    F: Fn(&'a LinearClient, i32, Option<String>) -> Pin<Box<dyn Future<Output = Result<C, CliError>> + Send + 'a>>,
+    F: Fn(
+        &'a LinearClient,
+        i32,
+        Option<String>,
+    ) -> Pin<Box<dyn Future<Output = Result<C, CliError>> + Send + 'a>>,
 {
     let max = if params.all {
         None

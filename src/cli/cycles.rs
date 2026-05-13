@@ -35,17 +35,19 @@ impl CyclesCommand {
                 let order_by = Some(pagination.order_by.into());
 
                 let result: ListResponse<Cycle> =
-                    paginate(client, &params, |c, page_size, cursor| Box::pin(async move {
-                        let vars = CyclesListVariables {
-                            first: Some(page_size),
-                            after: cursor,
-                            include_archived,
-                            order_by,
-                        };
-                        let op = CyclesListQuery::build(vars);
-                        let data = c.run_query(op).await?;
-                        Ok(data.cycles)
-                    }))
+                    paginate(client, &params, |c, page_size, cursor| {
+                        Box::pin(async move {
+                            let vars = CyclesListVariables {
+                                first: Some(page_size),
+                                after: cursor,
+                                include_archived,
+                                order_by,
+                            };
+                            let op = CyclesListQuery::build(vars);
+                            let data = c.run_query(op).await?;
+                            Ok(data.cycles)
+                        })
+                    })
                     .await?;
                 print_output(&result, format)
             }

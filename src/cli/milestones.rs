@@ -59,17 +59,19 @@ impl MilestonesCommand {
                 let order_by = Some(pagination.order_by.into());
 
                 let result: ListResponse<ProjectMilestone> =
-                    paginate(client, &params, |c, page_size, cursor| Box::pin(async move {
-                        let vars = ProjectMilestonesListVariables {
-                            first: Some(page_size),
-                            after: cursor,
-                            include_archived,
-                            order_by,
-                        };
-                        let op = ProjectMilestonesListQuery::build(vars);
-                        let data = c.run_query(op).await?;
-                        Ok(data.project_milestones)
-                    }))
+                    paginate(client, &params, |c, page_size, cursor| {
+                        Box::pin(async move {
+                            let vars = ProjectMilestonesListVariables {
+                                first: Some(page_size),
+                                after: cursor,
+                                include_archived,
+                                order_by,
+                            };
+                            let op = ProjectMilestonesListQuery::build(vars);
+                            let data = c.run_query(op).await?;
+                            Ok(data.project_milestones)
+                        })
+                    })
                     .await?;
                 print_output(&result, format)
             }
@@ -90,8 +92,9 @@ impl MilestonesCommand {
                     description,
                     target_date: target_date.map(TimelessDate::from),
                 };
-                let op =
-                    ProjectMilestoneCreateMutation::build(ProjectMilestoneCreateVariables { input });
+                let op = ProjectMilestoneCreateMutation::build(ProjectMilestoneCreateVariables {
+                    input,
+                });
                 let data = client.run_query(op).await?;
                 let resp = MutationResponse {
                     success: data.project_milestone_create.success,
@@ -110,11 +113,10 @@ impl MilestonesCommand {
                     description,
                     target_date: target_date.map(TimelessDate::from),
                 };
-                let op =
-                    ProjectMilestoneUpdateMutation::build(ProjectMilestoneUpdateVariables {
-                        id,
-                        input,
-                    });
+                let op = ProjectMilestoneUpdateMutation::build(ProjectMilestoneUpdateVariables {
+                    id,
+                    input,
+                });
                 let data = client.run_query(op).await?;
                 let resp = MutationResponse {
                     success: data.project_milestone_update.success,

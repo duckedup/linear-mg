@@ -18,8 +18,11 @@ async fn test_viewer_query() {
 
     use linear_mg::graphql::users::queries::ViewerQuery;
     let op = cynic::QueryBuilder::build(());
-    let data: linear_mg::graphql::users::types::User =
-        client.run_query::<ViewerQuery, _>(op).await.map(|d| d.viewer).unwrap();
+    let data: linear_mg::graphql::users::types::User = client
+        .run_query::<ViewerQuery, _>(op)
+        .await
+        .map(|d| d.viewer)
+        .unwrap();
 
     assert_eq!(data.name, "Test User");
     assert_eq!(data.email, "test@example.com");

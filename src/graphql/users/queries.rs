@@ -16,7 +16,11 @@ pub struct UserByIdVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Query", variables = "UserByIdVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Query",
+    variables = "UserByIdVariables"
+)]
 pub struct UserByIdQuery {
     #[arguments(id: $id)]
     pub user: User,
@@ -31,7 +35,11 @@ pub struct UsersListVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Query", variables = "UsersListVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Query",
+    variables = "UsersListVariables"
+)]
 pub struct UsersListQuery {
     #[arguments(
         first: $first,

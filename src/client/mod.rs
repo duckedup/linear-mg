@@ -52,9 +52,7 @@ impl LinearClient {
                 .and_then(|v| v.parse().ok());
             return Err(CliError::RateLimited { retry_after });
         }
-        if status == reqwest::StatusCode::UNAUTHORIZED
-            || status == reqwest::StatusCode::FORBIDDEN
-        {
+        if status == reqwest::StatusCode::UNAUTHORIZED || status == reqwest::StatusCode::FORBIDDEN {
             let body = response.text().await.unwrap_or_default();
             return Err(CliError::AuthError(body));
         }

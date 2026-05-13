@@ -9,7 +9,11 @@ pub struct IssueLabelCreateVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Mutation", variables = "IssueLabelCreateVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Mutation",
+    variables = "IssueLabelCreateVariables"
+)]
 pub struct IssueLabelCreateMutation {
     #[arguments(input: $input)]
     pub issue_label_create: IssueLabelPayload,

@@ -65,9 +65,19 @@ fn test_issues_create_requires_title_and_team() {
 #[test]
 fn test_all_subcommands_have_help() {
     let commands = [
-        "auth", "issues", "teams", "projects", "users", "comments",
-        "labels", "cycles", "states", "documents", "initiatives",
-        "milestones", "attachments",
+        "auth",
+        "issues",
+        "teams",
+        "projects",
+        "users",
+        "comments",
+        "labels",
+        "cycles",
+        "states",
+        "documents",
+        "initiatives",
+        "milestones",
+        "attachments",
     ];
     for cmd in commands {
         Command::cargo_bin("linear-mg")

@@ -9,7 +9,11 @@ pub struct AttachmentCreateVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Mutation", variables = "AttachmentCreateVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Mutation",
+    variables = "AttachmentCreateVariables"
+)]
 pub struct AttachmentCreateMutation {
     #[arguments(input: $input)]
     pub attachment_create: AttachmentPayload,
@@ -22,7 +26,11 @@ pub struct AttachmentUpdateVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Mutation", variables = "AttachmentUpdateVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Mutation",
+    variables = "AttachmentUpdateVariables"
+)]
 pub struct AttachmentUpdateMutation {
     #[arguments(id: $id, input: $input)]
     pub attachment_update: AttachmentPayload,
@@ -34,7 +42,11 @@ pub struct AttachmentDeleteVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Mutation", variables = "AttachmentDeleteVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Mutation",
+    variables = "AttachmentDeleteVariables"
+)]
 pub struct AttachmentDeleteMutation {
     #[arguments(id: $id)]
     pub attachment_delete: AttachmentDeletePayload,

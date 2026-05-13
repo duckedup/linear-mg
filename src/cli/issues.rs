@@ -154,27 +154,29 @@ impl IssuesCommand {
                 cycle,
                 priority,
             } => {
-                let filter = build_issue_filter(team, assignee, state, label, project, cycle, priority);
+                let filter =
+                    build_issue_filter(team, assignee, state, label, project, cycle, priority);
                 let params = pagination.to_paginator_params();
                 let include_archived = Some(pagination.include_archived);
                 let order_by = Some(pagination.order_by.into());
 
-                let result: ListResponse<Issue> = paginate(client, &params, |c, page_size, cursor| {
-                    let filter = filter.clone();
-                    Box::pin(async move {
-                        let vars = IssuesListVariables {
-                            first: Some(page_size),
-                            after: cursor,
-                            filter,
-                            include_archived,
-                            order_by,
-                        };
-                        let op = IssuesListQuery::build(vars);
-                        let data = c.run_query(op).await?;
-                        Ok(data.issues)
+                let result: ListResponse<Issue> =
+                    paginate(client, &params, |c, page_size, cursor| {
+                        let filter = filter.clone();
+                        Box::pin(async move {
+                            let vars = IssuesListVariables {
+                                first: Some(page_size),
+                                after: cursor,
+                                filter,
+                                include_archived,
+                                order_by,
+                            };
+                            let op = IssuesListQuery::build(vars);
+                            let data = c.run_query(op).await?;
+                            Ok(data.issues)
+                        })
                     })
-                })
-                .await?;
+                    .await?;
                 print_output(&result, format)
             }
             IssuesAction::Get { id } => {
@@ -205,7 +207,11 @@ impl IssuesCommand {
                     state_id: state,
                     project_id: project,
                     cycle_id: cycle,
-                    label_ids: if labels.is_empty() { None } else { Some(labels) },
+                    label_ids: if labels.is_empty() {
+                        None
+                    } else {
+                        Some(labels)
+                    },
                     due_date: due_date.map(TimelessDate::from),
                     estimate,
                     parent_id: parent,
@@ -243,8 +249,16 @@ impl IssuesCommand {
                     project_id: project,
                     cycle_id: cycle,
                     label_ids: None,
-                    added_label_ids: if add_labels.is_empty() { None } else { Some(add_labels) },
-                    removed_label_ids: if remove_labels.is_empty() { None } else { Some(remove_labels) },
+                    added_label_ids: if add_labels.is_empty() {
+                        None
+                    } else {
+                        Some(add_labels)
+                    },
+                    removed_label_ids: if remove_labels.is_empty() {
+                        None
+                    } else {
+                        Some(remove_labels)
+                    },
                     due_date: due_date.map(TimelessDate::from),
                     estimate,
                     parent_id: parent,
@@ -282,22 +296,23 @@ impl IssuesCommand {
                 let order_by = Some(pagination.order_by.into());
                 let q = query;
 
-                let result: ListResponse<Issue> = paginate(client, &params, |c, page_size, cursor| {
-                    let q = q.clone();
-                    Box::pin(async move {
-                        let vars = IssueSearchVariables {
-                            query: Some(q),
-                            first: Some(page_size),
-                            after: cursor,
-                            include_archived,
-                            order_by,
-                        };
-                        let op = IssueSearchQuery::build(vars);
-                        let data = c.run_query(op).await?;
-                        Ok(data.issue_search)
+                let result: ListResponse<Issue> =
+                    paginate(client, &params, |c, page_size, cursor| {
+                        let q = q.clone();
+                        Box::pin(async move {
+                            let vars = IssueSearchVariables {
+                                query: Some(q),
+                                first: Some(page_size),
+                                after: cursor,
+                                include_archived,
+                                order_by,
+                            };
+                            let op = IssueSearchQuery::build(vars);
+                            let data = c.run_query(op).await?;
+                            Ok(data.issue_search)
+                        })
                     })
-                })
-                .await?;
+                    .await?;
                 print_output(&result, format)
             }
         }

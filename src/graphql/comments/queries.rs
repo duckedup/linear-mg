@@ -10,7 +10,11 @@ pub struct CommentByIdVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Query", variables = "CommentByIdVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Query",
+    variables = "CommentByIdVariables"
+)]
 pub struct CommentByIdQuery {
     #[arguments(id: $id)]
     pub comment: Comment,
@@ -25,7 +29,11 @@ pub struct CommentsListVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Query", variables = "CommentsListVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Query",
+    variables = "CommentsListVariables"
+)]
 pub struct CommentsListQuery {
     #[arguments(
         first: $first,

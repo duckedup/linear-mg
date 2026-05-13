@@ -39,18 +39,21 @@ impl UsersCommand {
                 let include_archived = Some(pagination.include_archived);
                 let order_by = Some(pagination.order_by.into());
 
-                let result: ListResponse<User> = paginate(client, &params, |c, page_size, cursor| Box::pin(async move {
-                    let vars = UsersListVariables {
-                        first: Some(page_size),
-                        after: cursor,
-                        include_archived,
-                        order_by,
-                    };
-                    let op = UsersListQuery::build(vars);
-                    let data = c.run_query(op).await?;
-                    Ok(data.users)
-                }))
-                .await?;
+                let result: ListResponse<User> =
+                    paginate(client, &params, |c, page_size, cursor| {
+                        Box::pin(async move {
+                            let vars = UsersListVariables {
+                                first: Some(page_size),
+                                after: cursor,
+                                include_archived,
+                                order_by,
+                            };
+                            let op = UsersListQuery::build(vars);
+                            let data = c.run_query(op).await?;
+                            Ok(data.users)
+                        })
+                    })
+                    .await?;
                 print_output(&result, format)
             }
             UsersAction::Get { id } => {
