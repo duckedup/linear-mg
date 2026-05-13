@@ -121,7 +121,7 @@ jobs:
           Compress-Archive -Path "target/${{ matrix.target }}/release/linear-mg.exe" -DestinationPath "linear-mg-${{ matrix.target }}.zip"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: binary-${{ matrix.target }}
           path: linear-mg-${{ matrix.target }}.*
@@ -167,7 +167,7 @@ jobs:
           fetch-depth: 0
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           pattern: binary-*
           merge-multiple: true

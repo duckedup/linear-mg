@@ -7,6 +7,10 @@ pub struct GlobalArgs {
     #[arg(long, global = true)]
     pub json: bool,
 
+    /// Output as pretty-printed JSON
+    #[arg(long, global = true)]
+    pub json_pretty: bool,
+
     /// Linear API key (overrides config and env)
     #[arg(long, env = "LINEAR_API_KEY", global = true, hide_env_values = true)]
     pub api_key: Option<String>,
@@ -18,7 +22,9 @@ pub struct GlobalArgs {
 
 impl GlobalArgs {
     pub fn output_format(&self) -> OutputFormat {
-        if self.json {
+        if self.json_pretty {
+            OutputFormat::JsonPretty
+        } else if self.json {
             OutputFormat::Json
         } else {
             OutputFormat::Pretty
