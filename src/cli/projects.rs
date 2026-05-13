@@ -1,15 +1,11 @@
 use crate::cli::common::PaginationArgs;
-use crate::client::paginator::paginate;
 use crate::client::LinearClient;
+use crate::client::paginator::paginate;
 use crate::error::CliError;
 use crate::graphql::common::{ListResponse, MutationResponse};
-use crate::graphql::projects::mutations::*;
-use crate::graphql::projects::queries::*;
-use crate::graphql::projects::types::*;
-use crate::graphql::scalars::TimelessDate;
-use crate::output::{print_output, OutputFormat};
+use crate::graphql::projects::Project;
+use crate::output::{OutputFormat, print_output};
 use clap::Subcommand;
-use cynic::{MutationBuilder, QueryBuilder};
 
 #[derive(clap::Args, Debug)]
 pub struct ProjectsCommand {
@@ -19,20 +15,18 @@ pub struct ProjectsCommand {
 
 #[derive(Subcommand, Debug)]
 pub enum ProjectsAction {
-    /// List projects
     List {
         #[command(flatten)]
         pagination: PaginationArgs,
     },
-    /// Get a single project by ID
-    Get { id: String },
-    /// Create a new project
+    Get {
+        id: String,
+    },
     Create {
         #[arg(long)]
         name: String,
         #[arg(long)]
         description: Option<String>,
-        /// Team IDs (comma-separated)
         #[arg(long, value_delimiter = ',')]
         teams: Vec<String>,
         #[arg(long)]
@@ -50,7 +44,6 @@ pub enum ProjectsAction {
         #[arg(long)]
         status: Option<String>,
     },
-    /// Update an existing project
     Update {
         id: String,
         #[arg(long)]
@@ -72,10 +65,12 @@ pub enum ProjectsAction {
         #[arg(long)]
         status: Option<String>,
     },
-    /// Archive a project
-    Archive { id: String },
-    /// Delete a project
-    Delete { id: String },
+    Archive {
+        id: String,
+    },
+    Delete {
+        id: String,
+    },
 }
 
 impl ProjectsCommand {
@@ -83,31 +78,16 @@ impl ProjectsCommand {
         match self.action {
             ProjectsAction::List { pagination } => {
                 let params = pagination.to_paginator_params();
-                let include_archived = Some(pagination.include_archived);
-                let order_by = Some(pagination.order_by.into());
-
-                let result: ListResponse<Project> =
-                    paginate(client, &params, |c, page_size, cursor| {
-                        Box::pin(async move {
-                            let vars = ProjectsListVariables {
-                                first: Some(page_size),
-                                after: cursor,
-                                include_archived,
-                                order_by,
-                            };
-                            let op = ProjectsListQuery::build(vars);
-                            let data = c.run_query(op).await?;
-                            Ok(data.projects)
-                        })
-                    })
-                    .await?;
+                let ia = pagination.include_archived;
+                let ob = pagination.order_by.as_str().to_string();
+                let result: ListResponse<Project> = paginate(client, &params, |c, ps, cur| {
+                    let ob = ob.clone();
+                    Box::pin(async move { c.list_projects(ps, cur, ia, &ob).await })
+                })
+                .await?;
                 print_output(&result, format)
             }
-            ProjectsAction::Get { id } => {
-                let op = ProjectByIdQuery::build(ProjectByIdVariables { id });
-                let data = client.run_query(op).await?;
-                print_output(&data.project, format)
-            }
+            ProjectsAction::Get { id } => print_output(&client.get_project(&id).await?, format),
             ProjectsAction::Create {
                 name,
                 description,
@@ -120,25 +100,40 @@ impl ProjectsCommand {
                 priority,
                 status,
             } => {
-                let input = ProjectCreateInput {
-                    name,
-                    description,
-                    team_ids: teams,
-                    lead_id: lead,
-                    start_date: start_date.map(TimelessDate::from),
-                    target_date: target_date.map(TimelessDate::from),
-                    color,
-                    icon,
-                    priority,
-                    status_id: status,
-                };
-                let op = ProjectCreateMutation::build(ProjectCreateVariables { input });
-                let data = client.run_query(op).await?;
-                let resp = MutationResponse {
-                    success: data.project_create.success,
-                    data: data.project_create.project,
-                };
-                print_output(&resp, format)
+                let mut input = serde_json::json!({ "name": name, "teamIds": teams });
+                let obj = input.as_object_mut().unwrap();
+                if let Some(v) = description {
+                    obj.insert("description".into(), v.into());
+                }
+                if let Some(v) = lead {
+                    obj.insert("leadId".into(), v.into());
+                }
+                if let Some(v) = start_date {
+                    obj.insert("startDate".into(), v.into());
+                }
+                if let Some(v) = target_date {
+                    obj.insert("targetDate".into(), v.into());
+                }
+                if let Some(v) = color {
+                    obj.insert("color".into(), v.into());
+                }
+                if let Some(v) = icon {
+                    obj.insert("icon".into(), v.into());
+                }
+                if let Some(v) = priority {
+                    obj.insert("priority".into(), v.into());
+                }
+                if let Some(v) = status {
+                    obj.insert("statusId".into(), v.into());
+                }
+                let p = client.create_project(input).await?;
+                print_output(
+                    &MutationResponse {
+                        success: p.success,
+                        data: p.project,
+                    },
+                    format,
+                )
             }
             ProjectsAction::Update {
                 id,
@@ -152,42 +147,63 @@ impl ProjectsCommand {
                 priority,
                 status,
             } => {
-                let input = ProjectUpdateInput {
-                    name,
-                    description,
-                    lead_id: lead,
-                    start_date: start_date.map(TimelessDate::from),
-                    target_date: target_date.map(TimelessDate::from),
-                    color,
-                    icon,
-                    priority,
-                    status_id: status,
-                };
-                let op = ProjectUpdateMutation::build(ProjectUpdateVariables { id, input });
-                let data = client.run_query(op).await?;
-                let resp = MutationResponse {
-                    success: data.project_update.success,
-                    data: data.project_update.project,
-                };
-                print_output(&resp, format)
+                let mut input = serde_json::json!({});
+                let obj = input.as_object_mut().unwrap();
+                if let Some(v) = name {
+                    obj.insert("name".into(), v.into());
+                }
+                if let Some(v) = description {
+                    obj.insert("description".into(), v.into());
+                }
+                if let Some(v) = lead {
+                    obj.insert("leadId".into(), v.into());
+                }
+                if let Some(v) = start_date {
+                    obj.insert("startDate".into(), v.into());
+                }
+                if let Some(v) = target_date {
+                    obj.insert("targetDate".into(), v.into());
+                }
+                if let Some(v) = color {
+                    obj.insert("color".into(), v.into());
+                }
+                if let Some(v) = icon {
+                    obj.insert("icon".into(), v.into());
+                }
+                if let Some(v) = priority {
+                    obj.insert("priority".into(), v.into());
+                }
+                if let Some(v) = status {
+                    obj.insert("statusId".into(), v.into());
+                }
+                let p = client.update_project(&id, input).await?;
+                print_output(
+                    &MutationResponse {
+                        success: p.success,
+                        data: p.project,
+                    },
+                    format,
+                )
             }
             ProjectsAction::Archive { id } => {
-                let op = ProjectArchiveMutation::build(ProjectArchiveVariables { id });
-                let data = client.run_query(op).await?;
-                let resp = MutationResponse::<()> {
-                    success: data.project_archive.success,
-                    data: None,
-                };
-                print_output(&resp, format)
+                let p = client.archive_project(&id).await?;
+                print_output(
+                    &MutationResponse::<()> {
+                        success: p.success,
+                        data: None,
+                    },
+                    format,
+                )
             }
             ProjectsAction::Delete { id } => {
-                let op = ProjectDeleteMutation::build(ProjectDeleteVariables { id });
-                let data = client.run_query(op).await?;
-                let resp = MutationResponse::<()> {
-                    success: data.project_delete.success,
-                    data: None,
-                };
-                print_output(&resp, format)
+                let p = client.delete_project(&id).await?;
+                print_output(
+                    &MutationResponse::<()> {
+                        success: p.success,
+                        data: None,
+                    },
+                    format,
+                )
             }
         }
     }

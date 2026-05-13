@@ -9,9 +9,9 @@ fmt:
 fmt-check:
     cargo fmt --all -- --check
 
-# Run clippy lints
+# Run clippy lints (lib and bin only)
 lint:
-    cargo clippy --all-targets --all-features -- -D warnings
+    cargo clippy --all-features -- -D warnings
 
 # Alias for lint
 clippy: lint

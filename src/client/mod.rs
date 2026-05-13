@@ -1,6 +1,7 @@
 pub mod paginator;
 
 use crate::error::CliError;
+use serde::Serialize;
 
 pub const DEFAULT_ENDPOINT: &str = "https://api.linear.app/graphql";
 
@@ -8,6 +9,24 @@ pub struct LinearClient {
     http: reqwest::Client,
     api_key: String,
     endpoint: String,
+}
+
+#[derive(Serialize)]
+struct GraphqlRequest<'a> {
+    query: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    variables: Option<serde_json::Value>,
+}
+
+#[derive(serde::Deserialize)]
+struct GraphqlResponse<T> {
+    data: Option<T>,
+    errors: Option<Vec<GraphqlError>>,
+}
+
+#[derive(serde::Deserialize, Debug)]
+pub struct GraphqlError {
+    pub message: String,
 }
 
 impl LinearClient {
@@ -27,19 +46,18 @@ impl LinearClient {
         }
     }
 
-    pub async fn run_query<ResponseData, Vars>(
+    pub async fn query<T: serde::de::DeserializeOwned>(
         &self,
-        operation: cynic::Operation<ResponseData, Vars>,
-    ) -> Result<ResponseData, CliError>
-    where
-        ResponseData: serde::de::DeserializeOwned + 'static,
-        Vars: serde::Serialize,
-    {
+        query: &str,
+        variables: Option<serde_json::Value>,
+    ) -> Result<T, CliError> {
+        let body = GraphqlRequest { query, variables };
+
         let response = self
             .http
             .post(&self.endpoint)
             .header("Authorization", &self.api_key)
-            .json(&operation)
+            .json(&body)
             .send()
             .await?;
 
@@ -61,17 +79,19 @@ impl LinearClient {
             return Err(CliError::HttpError { status, body });
         }
 
-        let gql_response: cynic::GraphQlResponse<ResponseData> = response.json().await?;
+        let gql: GraphqlResponse<T> = response.json().await?;
 
-        if let Some(errors) = &gql_response.errors {
-            if !errors.is_empty() {
-                if gql_response.data.is_none() {
-                    return Err(CliError::GraphQlErrors(errors.clone()));
-                }
-                tracing::warn!("GraphQL partial errors: {:?}", errors);
+        if let Some(errors) = &gql.errors
+            && !errors.is_empty()
+        {
+            if gql.data.is_none() {
+                return Err(CliError::GraphQlErrors(
+                    errors.iter().map(|e| e.message.clone()).collect(),
+                ));
             }
+            tracing::warn!("GraphQL partial errors: {:?}", errors);
         }
 
-        gql_response.data.ok_or(CliError::NoData)
+        gql.data.ok_or(CliError::NoData)
     }
 }

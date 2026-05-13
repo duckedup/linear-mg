@@ -1,5 +1,3 @@
-pub mod scalars;
-pub use scalars::schema;
 pub mod attachments;
 pub mod comments;
 pub mod common;

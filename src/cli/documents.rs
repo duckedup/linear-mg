@@ -1,14 +1,11 @@
 use crate::cli::common::PaginationArgs;
-use crate::client::paginator::paginate;
 use crate::client::LinearClient;
+use crate::client::paginator::paginate;
 use crate::error::CliError;
 use crate::graphql::common::{ListResponse, MutationResponse};
-use crate::graphql::documents::mutations::*;
-use crate::graphql::documents::queries::*;
-use crate::graphql::documents::types::*;
-use crate::output::{print_output, OutputFormat};
+use crate::graphql::documents::Document;
+use crate::output::{OutputFormat, print_output};
 use clap::Subcommand;
-use cynic::{MutationBuilder, QueryBuilder};
 
 #[derive(clap::Args, Debug)]
 pub struct DocumentsCommand {
@@ -18,14 +15,13 @@ pub struct DocumentsCommand {
 
 #[derive(Subcommand, Debug)]
 pub enum DocumentsAction {
-    /// List documents
     List {
         #[command(flatten)]
         pagination: PaginationArgs,
     },
-    /// Get a single document by ID
-    Get { id: String },
-    /// Create a new document
+    Get {
+        id: String,
+    },
     Create {
         #[arg(long)]
         title: String,
@@ -38,7 +34,6 @@ pub enum DocumentsAction {
         #[arg(long)]
         color: Option<String>,
     },
-    /// Update a document
     Update {
         id: String,
         #[arg(long)]
@@ -59,31 +54,16 @@ impl DocumentsCommand {
         match self.action {
             DocumentsAction::List { pagination } => {
                 let params = pagination.to_paginator_params();
-                let include_archived = Some(pagination.include_archived);
-                let order_by = Some(pagination.order_by.into());
-
-                let result: ListResponse<Document> =
-                    paginate(client, &params, |c, page_size, cursor| {
-                        Box::pin(async move {
-                            let vars = DocumentsListVariables {
-                                first: Some(page_size),
-                                after: cursor,
-                                include_archived,
-                                order_by,
-                            };
-                            let op = DocumentsListQuery::build(vars);
-                            let data = c.run_query(op).await?;
-                            Ok(data.documents)
-                        })
-                    })
-                    .await?;
+                let ia = pagination.include_archived;
+                let ob = pagination.order_by.as_str().to_string();
+                let result: ListResponse<Document> = paginate(client, &params, |c, ps, cur| {
+                    let ob = ob.clone();
+                    Box::pin(async move { c.list_documents(ps, cur, ia, &ob).await })
+                })
+                .await?;
                 print_output(&result, format)
             }
-            DocumentsAction::Get { id } => {
-                let op = DocumentByIdQuery::build(DocumentByIdVariables { id });
-                let data = client.run_query(op).await?;
-                print_output(&data.document, format)
-            }
+            DocumentsAction::Get { id } => print_output(&client.get_document(&id).await?, format),
             DocumentsAction::Create {
                 title,
                 content,
@@ -91,20 +71,28 @@ impl DocumentsCommand {
                 icon,
                 color,
             } => {
-                let input = DocumentCreateInput {
-                    title,
-                    content,
-                    project_id: project,
-                    icon,
-                    color,
-                };
-                let op = DocumentCreateMutation::build(DocumentCreateVariables { input });
-                let data = client.run_query(op).await?;
-                let resp = MutationResponse {
-                    success: data.document_create.success,
-                    data: Some(data.document_create.document),
-                };
-                print_output(&resp, format)
+                let mut input = serde_json::json!({ "title": title });
+                let obj = input.as_object_mut().unwrap();
+                if let Some(v) = content {
+                    obj.insert("content".into(), v.into());
+                }
+                if let Some(v) = project {
+                    obj.insert("projectId".into(), v.into());
+                }
+                if let Some(v) = icon {
+                    obj.insert("icon".into(), v.into());
+                }
+                if let Some(v) = color {
+                    obj.insert("color".into(), v.into());
+                }
+                let p = client.create_document(input).await?;
+                print_output(
+                    &MutationResponse {
+                        success: p.success,
+                        data: Some(p.document),
+                    },
+                    format,
+                )
             }
             DocumentsAction::Update {
                 id,
@@ -114,20 +102,31 @@ impl DocumentsCommand {
                 icon,
                 color,
             } => {
-                let input = DocumentUpdateInput {
-                    title,
-                    content,
-                    project_id: project,
-                    icon,
-                    color,
-                };
-                let op = DocumentUpdateMutation::build(DocumentUpdateVariables { id, input });
-                let data = client.run_query(op).await?;
-                let resp = MutationResponse {
-                    success: data.document_update.success,
-                    data: Some(data.document_update.document),
-                };
-                print_output(&resp, format)
+                let mut input = serde_json::json!({});
+                let obj = input.as_object_mut().unwrap();
+                if let Some(v) = title {
+                    obj.insert("title".into(), v.into());
+                }
+                if let Some(v) = content {
+                    obj.insert("content".into(), v.into());
+                }
+                if let Some(v) = project {
+                    obj.insert("projectId".into(), v.into());
+                }
+                if let Some(v) = icon {
+                    obj.insert("icon".into(), v.into());
+                }
+                if let Some(v) = color {
+                    obj.insert("color".into(), v.into());
+                }
+                let p = client.update_document(&id, input).await?;
+                print_output(
+                    &MutationResponse {
+                        success: p.success,
+                        data: Some(p.document),
+                    },
+                    format,
+                )
             }
         }
     }

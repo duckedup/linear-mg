@@ -1,13 +1,11 @@
 use crate::cli::common::PaginationArgs;
-use crate::client::paginator::paginate;
 use crate::client::LinearClient;
+use crate::client::paginator::paginate;
 use crate::error::CliError;
 use crate::graphql::common::ListResponse;
-use crate::graphql::teams::queries::*;
-use crate::graphql::teams::types::*;
-use crate::output::{print_output, OutputFormat};
+use crate::graphql::teams::Team;
+use crate::output::{OutputFormat, print_output};
 use clap::Subcommand;
-use cynic::QueryBuilder;
 
 #[derive(clap::Args, Debug)]
 pub struct TeamsCommand {
@@ -17,14 +15,11 @@ pub struct TeamsCommand {
 
 #[derive(Subcommand, Debug)]
 pub enum TeamsAction {
-    /// List all teams
     List {
         #[command(flatten)]
         pagination: PaginationArgs,
     },
-    /// Get a single team by ID
     Get {
-        /// Team ID
         id: String,
     },
 }
@@ -34,31 +29,16 @@ impl TeamsCommand {
         match self.action {
             TeamsAction::List { pagination } => {
                 let params = pagination.to_paginator_params();
-                let include_archived = Some(pagination.include_archived);
-                let order_by = Some(pagination.order_by.into());
-
-                let result: ListResponse<Team> =
-                    paginate(client, &params, |c, page_size, cursor| {
-                        Box::pin(async move {
-                            let vars = TeamsListVariables {
-                                first: Some(page_size),
-                                after: cursor,
-                                include_archived,
-                                order_by,
-                            };
-                            let op = TeamsListQuery::build(vars);
-                            let data = c.run_query(op).await?;
-                            Ok(data.teams)
-                        })
-                    })
-                    .await?;
+                let ia = pagination.include_archived;
+                let ob = pagination.order_by.as_str().to_string();
+                let result: ListResponse<Team> = paginate(client, &params, |c, ps, cur| {
+                    let ob = ob.clone();
+                    Box::pin(async move { c.list_teams(ps, cur, ia, &ob).await })
+                })
+                .await?;
                 print_output(&result, format)
             }
-            TeamsAction::Get { id } => {
-                let op = TeamByIdQuery::build(TeamByIdVariables { id });
-                let data = client.run_query(op).await?;
-                print_output(&data.team, format)
-            }
+            TeamsAction::Get { id } => print_output(&client.get_team(&id).await?, format),
         }
     }
 }

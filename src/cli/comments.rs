@@ -1,14 +1,11 @@
 use crate::cli::common::PaginationArgs;
-use crate::client::paginator::paginate;
 use crate::client::LinearClient;
+use crate::client::paginator::paginate;
 use crate::error::CliError;
-use crate::graphql::comments::mutations::*;
-use crate::graphql::comments::queries::*;
-use crate::graphql::comments::types::*;
+use crate::graphql::comments::Comment;
 use crate::graphql::common::{ListResponse, MutationResponse};
-use crate::output::{print_output, OutputFormat};
+use crate::output::{OutputFormat, print_output};
 use clap::Subcommand;
-use cynic::{MutationBuilder, QueryBuilder};
 
 #[derive(clap::Args, Debug)]
 pub struct CommentsCommand {
@@ -18,36 +15,27 @@ pub struct CommentsCommand {
 
 #[derive(Subcommand, Debug)]
 pub enum CommentsAction {
-    /// List comments
     List {
         #[command(flatten)]
         pagination: PaginationArgs,
     },
-    /// Get a single comment by ID
-    Get { id: String },
-    /// Create a comment on an issue
+    Get {
+        id: String,
+    },
     Create {
-        /// Issue ID or identifier
         #[arg(long)]
         issue: String,
-        /// Comment body (markdown)
         #[arg(long)]
         body: String,
-        /// Parent comment ID for threading
         #[arg(long)]
         parent: Option<String>,
     },
-    /// Update a comment
     Update {
-        /// Comment ID
         id: String,
-        /// New body (markdown)
         #[arg(long)]
         body: String,
     },
-    /// Delete a comment
     Delete {
-        /// Comment ID
         id: String,
     },
 }
@@ -57,67 +45,58 @@ impl CommentsCommand {
         match self.action {
             CommentsAction::List { pagination } => {
                 let params = pagination.to_paginator_params();
-                let include_archived = Some(pagination.include_archived);
-                let order_by = Some(pagination.order_by.into());
-
-                let result: ListResponse<Comment> =
-                    paginate(client, &params, |c, page_size, cursor| {
-                        Box::pin(async move {
-                            let vars = CommentsListVariables {
-                                first: Some(page_size),
-                                after: cursor,
-                                include_archived,
-                                order_by,
-                            };
-                            let op = CommentsListQuery::build(vars);
-                            let data = c.run_query(op).await?;
-                            Ok(data.comments)
-                        })
-                    })
-                    .await?;
+                let ia = pagination.include_archived;
+                let ob = pagination.order_by.as_str().to_string();
+                let result: ListResponse<Comment> = paginate(client, &params, |c, ps, cur| {
+                    let ob = ob.clone();
+                    Box::pin(async move { c.list_comments(ps, cur, ia, &ob).await })
+                })
+                .await?;
                 print_output(&result, format)
             }
-            CommentsAction::Get { id } => {
-                let op = CommentByIdQuery::build(CommentByIdVariables { id });
-                let data = client.run_query(op).await?;
-                print_output(&data.comment, format)
-            }
+            CommentsAction::Get { id } => print_output(&client.get_comment(&id).await?, format),
             CommentsAction::Create {
                 issue,
                 body,
                 parent,
             } => {
-                let input = CommentCreateInput {
-                    issue_id: Some(issue),
-                    body,
-                    parent_id: parent,
-                };
-                let op = CommentCreateMutation::build(CommentCreateVariables { input });
-                let data = client.run_query(op).await?;
-                let resp = MutationResponse {
-                    success: data.comment_create.success,
-                    data: data.comment_create.comment,
-                };
-                print_output(&resp, format)
+                let mut input = serde_json::json!({ "issueId": issue, "body": body });
+                if let Some(p) = parent {
+                    input
+                        .as_object_mut()
+                        .unwrap()
+                        .insert("parentId".into(), p.into());
+                }
+                let p = client.create_comment(input).await?;
+                print_output(
+                    &MutationResponse {
+                        success: p.success,
+                        data: p.comment,
+                    },
+                    format,
+                )
             }
             CommentsAction::Update { id, body } => {
-                let input = CommentUpdateInput { body };
-                let op = CommentUpdateMutation::build(CommentUpdateVariables { id, input });
-                let data = client.run_query(op).await?;
-                let resp = MutationResponse {
-                    success: data.comment_update.success,
-                    data: data.comment_update.comment,
-                };
-                print_output(&resp, format)
+                let p = client
+                    .update_comment(&id, serde_json::json!({ "body": body }))
+                    .await?;
+                print_output(
+                    &MutationResponse {
+                        success: p.success,
+                        data: p.comment,
+                    },
+                    format,
+                )
             }
             CommentsAction::Delete { id } => {
-                let op = CommentDeleteMutation::build(CommentDeleteVariables { id });
-                let data = client.run_query(op).await?;
-                let resp = MutationResponse::<()> {
-                    success: data.comment_delete.success,
-                    data: None,
-                };
-                print_output(&resp, format)
+                let p = client.delete_comment(&id).await?;
+                print_output(
+                    &MutationResponse::<()> {
+                        success: p.success,
+                        data: None,
+                    },
+                    format,
+                )
             }
         }
     }
