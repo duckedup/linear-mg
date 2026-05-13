@@ -5,7 +5,6 @@ use linear_mg::client::paginator::{paginate, PaginationParams};
 use linear_mg::graphql::common::ListResponse;
 use linear_mg::graphql::issues::queries::*;
 use linear_mg::graphql::issues::types::*;
-use std::pin::Pin;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, ResponseTemplate};
 

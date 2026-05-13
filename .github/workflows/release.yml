@@ -52,7 +52,7 @@ jobs:
 
       - name: Install Rust
         run: |
-          rustup toolchain install stable --profile default
+          rustup toolchain install stable --profile default --component clippy
           rustup default stable
 
       - name: Cache cargo registry and build

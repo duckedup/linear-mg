@@ -13,6 +13,9 @@ fmt-check:
 lint:
     cargo clippy --all-targets --all-features -- -D warnings
 
+# Alias for lint
+clippy: lint
+
 # Build the project
 build:
     cargo build

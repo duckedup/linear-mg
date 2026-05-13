@@ -18,6 +18,34 @@ cd linear-mg
 cargo build --release
 ```
 
+## Development
+
+[just](https://github.com/casey/just) is used as the task runner. Install it with:
+
+```sh
+# macOS
+brew install just
+
+# cargo
+cargo install just
+```
+
+Available commands:
+
+```sh
+just fmt          # Format code
+just fmt-check    # Check formatting
+just lint         # Run clippy lints
+just clippy       # Alias for lint
+just build        # Build the project
+just test         # Run tests
+just check        # Run all checks (fmt, lint, test)
+just publish-dry  # Dry run publish to crates.io
+just refresh-schema  # Download latest Linear GraphQL schema
+```
+
+CI runs `just check` on every pull request and requires a version bump in `Cargo.toml` before merging.
+
 ## Authentication
 
 Set your Linear API key via environment variable (recommended) or config file.
@@ -254,7 +282,7 @@ async fn main() {
 The Linear GraphQL schema is checked in at `schema/linear.graphql`. To update it:
 
 ```sh
-./scripts/refresh-schema.sh
+just refresh-schema
 cargo build  # Recompiles with the new schema
 ```
 
