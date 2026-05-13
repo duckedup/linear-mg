@@ -10,6 +10,14 @@ keywords = ["linear", "graphql", "cli", "project-management", "api"]
 categories = ["command-line-utilities", "development-tools"]
 readme = "README.md"
 
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-{ target }.tar.gz"
+pkg-fmt = "tgz"
+
+[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-{ target }.zip"
+pkg-fmt = "zip"
+
 [dependencies]
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 clap = { version = "4", features = ["derive", "env"] }

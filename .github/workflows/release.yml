@@ -70,6 +70,62 @@ jobs:
       - name: Run checks
         run: just check
 
+  build-binaries:
+    name: Build ${{ matrix.target }}
+    needs: [check-version, test]
+    if: needs.check-version.outputs.should_release == 'true'
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add ${{ matrix.target }}
+
+      - name: Install cross-compilation tools
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> "$GITHUB_ENV"
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package (unix)
+        if: runner.os != 'Windows'
+        run: |
+          cd target/${{ matrix.target }}/release
+          tar czf ../../../linear-mg-${{ matrix.target }}.tar.gz linear-mg
+          cd ../../..
+
+      - name: Package (windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "target/${{ matrix.target }}/release/linear-mg.exe" -DestinationPath "linear-mg-${{ matrix.target }}.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.target }}
+          path: linear-mg-${{ matrix.target }}.*
+
   publish-crate:
     name: Publish to crates.io
     needs: [check-version, test]
@@ -102,13 +158,19 @@ jobs:
 
   github-release:
     name: Create GitHub Release
-    needs: [check-version, test, publish-crate]
+    needs: [check-version, test, publish-crate, build-binaries]
     if: needs.check-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: binary-*
+          merge-multiple: true
 
       - name: Create tag
         run: |
@@ -127,10 +189,13 @@ jobs:
           fi
 
           gh release create "${{ needs.check-version.outputs.tag }}" \
+            linear-mg-*.tar.gz linear-mg-*.zip \
             --title "${{ needs.check-version.outputs.tag }}" \
             --notes "## linear-mg ${{ needs.check-version.outputs.version }}
 
           \`\`\`sh
+          cargo binstall linear-mg
+          # or
           cargo install linear-mg@${{ needs.check-version.outputs.version }}
           \`\`\`
 
