@@ -13,7 +13,11 @@ pub struct IssueLabelsListVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Query", variables = "IssueLabelsListVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Query",
+    variables = "IssueLabelsListVariables"
+)]
 pub struct IssueLabelsListQuery {
     #[arguments(
         first: $first,

@@ -87,17 +87,19 @@ impl ProjectsCommand {
                 let order_by = Some(pagination.order_by.into());
 
                 let result: ListResponse<Project> =
-                    paginate(client, &params, |c, page_size, cursor| Box::pin(async move {
-                        let vars = ProjectsListVariables {
-                            first: Some(page_size),
-                            after: cursor,
-                            include_archived,
-                            order_by,
-                        };
-                        let op = ProjectsListQuery::build(vars);
-                        let data = c.run_query(op).await?;
-                        Ok(data.projects)
-                    }))
+                    paginate(client, &params, |c, page_size, cursor| {
+                        Box::pin(async move {
+                            let vars = ProjectsListVariables {
+                                first: Some(page_size),
+                                after: cursor,
+                                include_archived,
+                                order_by,
+                            };
+                            let op = ProjectsListQuery::build(vars);
+                            let data = c.run_query(op).await?;
+                            Ok(data.projects)
+                        })
+                    })
                     .await?;
                 print_output(&result, format)
             }

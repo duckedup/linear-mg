@@ -10,7 +10,11 @@ pub struct InitiativeByIdVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Query", variables = "InitiativeByIdVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Query",
+    variables = "InitiativeByIdVariables"
+)]
 pub struct InitiativeByIdQuery {
     #[arguments(id: $id)]
     pub initiative: Initiative,
@@ -25,7 +29,11 @@ pub struct InitiativesListVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Query", variables = "InitiativesListVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Query",
+    variables = "InitiativesListVariables"
+)]
 pub struct InitiativesListQuery {
     #[arguments(
         first: $first,

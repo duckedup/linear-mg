@@ -62,17 +62,19 @@ impl AttachmentsCommand {
                 let order_by = Some(pagination.order_by.into());
 
                 let result: ListResponse<Attachment> =
-                    paginate(client, &params, |c, page_size, cursor| Box::pin(async move {
-                        let vars = AttachmentsListVariables {
-                            first: Some(page_size),
-                            after: cursor,
-                            include_archived,
-                            order_by,
-                        };
-                        let op = AttachmentsListQuery::build(vars);
-                        let data = c.run_query(op).await?;
-                        Ok(data.attachments)
-                    }))
+                    paginate(client, &params, |c, page_size, cursor| {
+                        Box::pin(async move {
+                            let vars = AttachmentsListVariables {
+                                first: Some(page_size),
+                                after: cursor,
+                                include_archived,
+                                order_by,
+                            };
+                            let op = AttachmentsListQuery::build(vars);
+                            let data = c.run_query(op).await?;
+                            Ok(data.attachments)
+                        })
+                    })
                     .await?;
                 print_output(&result, format)
             }

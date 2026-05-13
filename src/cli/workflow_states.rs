@@ -33,17 +33,19 @@ impl WorkflowStatesCommand {
                 let order_by = Some(pagination.order_by.into());
 
                 let result: ListResponse<WorkflowState> =
-                    paginate(client, &params, |c, page_size, cursor| Box::pin(async move {
-                        let vars = WorkflowStatesListVariables {
-                            first: Some(page_size),
-                            after: cursor,
-                            include_archived,
-                            order_by,
-                        };
-                        let op = WorkflowStatesListQuery::build(vars);
-                        let data = c.run_query(op).await?;
-                        Ok(data.workflow_states)
-                    }))
+                    paginate(client, &params, |c, page_size, cursor| {
+                        Box::pin(async move {
+                            let vars = WorkflowStatesListVariables {
+                                first: Some(page_size),
+                                after: cursor,
+                                include_archived,
+                                order_by,
+                            };
+                            let op = WorkflowStatesListQuery::build(vars);
+                            let data = c.run_query(op).await?;
+                            Ok(data.workflow_states)
+                        })
+                    })
                     .await?;
                 print_output(&result, format)
             }

@@ -31,9 +31,7 @@ impl AuthCommand {
         match self.action {
             AuthAction::Login { key } => {
                 let mut config = Config::load()?;
-                config.auth = Some(AuthConfig {
-                    api_key: Some(key),
-                });
+                config.auth = Some(AuthConfig { api_key: Some(key) });
                 config.save()?;
                 let msg = serde_json::json!({ "message": "API key saved", "path": Config::path().display().to_string() });
                 print_output(&msg, format)

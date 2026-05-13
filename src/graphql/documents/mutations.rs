@@ -9,7 +9,11 @@ pub struct DocumentCreateVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Mutation", variables = "DocumentCreateVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Mutation",
+    variables = "DocumentCreateVariables"
+)]
 pub struct DocumentCreateMutation {
     #[arguments(input: $input)]
     pub document_create: DocumentPayload,
@@ -22,7 +26,11 @@ pub struct DocumentUpdateVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Mutation", variables = "DocumentUpdateVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Mutation",
+    variables = "DocumentUpdateVariables"
+)]
 pub struct DocumentUpdateMutation {
     #[arguments(id: $id, input: $input)]
     pub document_update: DocumentPayload,

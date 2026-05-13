@@ -12,7 +12,11 @@ pub struct IssueByIdVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Query", variables = "IssueByIdVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Query",
+    variables = "IssueByIdVariables"
+)]
 pub struct IssueByIdQuery {
     #[arguments(id: $id)]
     pub issue: Issue,
@@ -30,7 +34,11 @@ pub struct IssuesListVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Query", variables = "IssuesListVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Query",
+    variables = "IssuesListVariables"
+)]
 pub struct IssuesListQuery {
     #[arguments(
         first: $first,
@@ -54,7 +62,11 @@ pub struct IssueSearchVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Query", variables = "IssueSearchVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Query",
+    variables = "IssueSearchVariables"
+)]
 pub struct IssueSearchQuery {
     #[arguments(
         query: $query,

@@ -13,7 +13,11 @@ pub struct PageInfo {
 }
 
 #[derive(cynic::Enum, Debug, Clone, Copy)]
-#[cynic(schema = "linear", graphql_type = "PaginationOrderBy", rename_all = "camelCase")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "PaginationOrderBy",
+    rename_all = "camelCase"
+)]
 pub enum PaginationOrderBy {
     CreatedAt,
     UpdatedAt,

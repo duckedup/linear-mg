@@ -11,7 +11,11 @@ pub struct IssueCreateVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Mutation", variables = "IssueCreateVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Mutation",
+    variables = "IssueCreateVariables"
+)]
 pub struct IssueCreateMutation {
     #[arguments(input: $input)]
     pub issue_create: IssuePayload,
@@ -26,7 +30,11 @@ pub struct IssueUpdateVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Mutation", variables = "IssueUpdateVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Mutation",
+    variables = "IssueUpdateVariables"
+)]
 pub struct IssueUpdateMutation {
     #[arguments(id: $id, input: $input)]
     pub issue_update: IssuePayload,
@@ -40,7 +48,11 @@ pub struct IssueArchiveVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Mutation", variables = "IssueArchiveVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Mutation",
+    variables = "IssueArchiveVariables"
+)]
 pub struct IssueArchiveMutation {
     #[arguments(id: $id)]
     pub issue_archive: IssueArchivePayload,
@@ -54,7 +66,11 @@ pub struct IssueDeleteVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Mutation", variables = "IssueDeleteVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Mutation",
+    variables = "IssueDeleteVariables"
+)]
 pub struct IssueDeleteMutation {
     #[arguments(id: $id)]
     pub issue_delete: IssueArchivePayload,

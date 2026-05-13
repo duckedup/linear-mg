@@ -61,17 +61,19 @@ impl CommentsCommand {
                 let order_by = Some(pagination.order_by.into());
 
                 let result: ListResponse<Comment> =
-                    paginate(client, &params, |c, page_size, cursor| Box::pin(async move {
-                        let vars = CommentsListVariables {
-                            first: Some(page_size),
-                            after: cursor,
-                            include_archived,
-                            order_by,
-                        };
-                        let op = CommentsListQuery::build(vars);
-                        let data = c.run_query(op).await?;
-                        Ok(data.comments)
-                    }))
+                    paginate(client, &params, |c, page_size, cursor| {
+                        Box::pin(async move {
+                            let vars = CommentsListVariables {
+                                first: Some(page_size),
+                                after: cursor,
+                                include_archived,
+                                order_by,
+                            };
+                            let op = CommentsListQuery::build(vars);
+                            let data = c.run_query(op).await?;
+                            Ok(data.comments)
+                        })
+                    })
                     .await?;
                 print_output(&result, format)
             }

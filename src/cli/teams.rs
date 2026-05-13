@@ -37,18 +37,21 @@ impl TeamsCommand {
                 let include_archived = Some(pagination.include_archived);
                 let order_by = Some(pagination.order_by.into());
 
-                let result: ListResponse<Team> = paginate(client, &params, |c, page_size, cursor| Box::pin(async move {
-                    let vars = TeamsListVariables {
-                        first: Some(page_size),
-                        after: cursor,
-                        include_archived,
-                        order_by,
-                    };
-                    let op = TeamsListQuery::build(vars);
-                    let data = c.run_query(op).await?;
-                    Ok(data.teams)
-                }))
-                .await?;
+                let result: ListResponse<Team> =
+                    paginate(client, &params, |c, page_size, cursor| {
+                        Box::pin(async move {
+                            let vars = TeamsListVariables {
+                                first: Some(page_size),
+                                after: cursor,
+                                include_archived,
+                                order_by,
+                            };
+                            let op = TeamsListQuery::build(vars);
+                            let data = c.run_query(op).await?;
+                            Ok(data.teams)
+                        })
+                    })
+                    .await?;
                 print_output(&result, format)
             }
             TeamsAction::Get { id } => {

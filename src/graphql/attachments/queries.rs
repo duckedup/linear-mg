@@ -10,7 +10,11 @@ pub struct AttachmentByIdVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Query", variables = "AttachmentByIdVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Query",
+    variables = "AttachmentByIdVariables"
+)]
 pub struct AttachmentByIdQuery {
     #[arguments(id: $id)]
     pub attachment: Attachment,
@@ -25,7 +29,11 @@ pub struct AttachmentsListVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Query", variables = "AttachmentsListVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Query",
+    variables = "AttachmentsListVariables"
+)]
 pub struct AttachmentsListQuery {
     #[arguments(
         first: $first,

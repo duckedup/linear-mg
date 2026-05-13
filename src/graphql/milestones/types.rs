@@ -7,7 +7,11 @@ use crate::graphql::scalars::*;
 use serde::Serialize;
 
 #[derive(cynic::Enum, Debug, Clone, Copy)]
-#[cynic(schema = "linear", graphql_type = "ProjectMilestoneStatus", rename_all = "camelCase")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "ProjectMilestoneStatus",
+    rename_all = "camelCase"
+)]
 pub enum ProjectMilestoneStatus {
     Done,
     Next,

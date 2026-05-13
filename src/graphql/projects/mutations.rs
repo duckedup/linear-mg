@@ -9,7 +9,11 @@ pub struct ProjectCreateVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Mutation", variables = "ProjectCreateVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Mutation",
+    variables = "ProjectCreateVariables"
+)]
 pub struct ProjectCreateMutation {
     #[arguments(input: $input)]
     pub project_create: ProjectPayload,
@@ -22,7 +26,11 @@ pub struct ProjectUpdateVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Mutation", variables = "ProjectUpdateVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Mutation",
+    variables = "ProjectUpdateVariables"
+)]
 pub struct ProjectUpdateMutation {
     #[arguments(id: $id, input: $input)]
     pub project_update: ProjectPayload,
@@ -34,7 +42,11 @@ pub struct ProjectArchiveVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Mutation", variables = "ProjectArchiveVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Mutation",
+    variables = "ProjectArchiveVariables"
+)]
 pub struct ProjectArchiveMutation {
     #[arguments(id: $id)]
     pub project_archive: ProjectArchivePayload,
@@ -46,7 +58,11 @@ pub struct ProjectDeleteVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(schema = "linear", graphql_type = "Mutation", variables = "ProjectDeleteVariables")]
+#[cynic(
+    schema = "linear",
+    graphql_type = "Mutation",
+    variables = "ProjectDeleteVariables"
+)]
 pub struct ProjectDeleteMutation {
     #[arguments(id: $id)]
     pub project_delete: ProjectArchivePayload,
