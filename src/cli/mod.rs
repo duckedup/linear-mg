@@ -9,6 +9,7 @@ pub mod issues;
 pub mod labels;
 pub mod milestones;
 pub mod projects;
+pub mod resolve;
 pub mod teams;
 pub mod users;
 pub mod workflow_states;

@@ -107,16 +107,16 @@ Options:
 linear-mg issues list --team ENG --limit 10
 
 # Filter by state and assignee
-linear-mg issues list --team ENG --state "In Progress" --assignee USER_ID
+linear-mg issues list --team ENG --state "In Progress" --assignee me
 
 # Get a single issue by identifier
 linear-mg issues get ENG-123
 
-# Create an issue
-linear-mg issues create --team ENG --title "Fix login bug" --priority 1 --assignee USER_ID
+# Create an issue (accepts names, emails, "me" — IDs resolved automatically)
+linear-mg issues create --team ENG --title "Fix login bug" --priority 1 --assignee me --state "In Progress"
 
-# Update an issue (change status, reassign, etc.)
-linear-mg issues update ISSUE_ID --state STATE_ID --assignee NEW_USER_ID
+# Update an issue (--state and --assignee accept names, not just IDs)
+linear-mg issues update ENG-123 --state "In Progress" --assignee me
 
 # Add/remove labels
 linear-mg issues update ISSUE_ID --add-labels LABEL_ID_1,LABEL_ID_2
