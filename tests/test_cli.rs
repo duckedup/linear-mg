@@ -3,7 +3,7 @@ use predicates::prelude::*;
 
 #[test]
 fn test_help() {
-    Command::cargo_bin("linear-wp")
+    Command::cargo_bin("linear-mg")
         .unwrap()
         .arg("--help")
         .assert()
@@ -16,18 +16,18 @@ fn test_help() {
 
 #[test]
 fn test_version() {
-    Command::cargo_bin("linear-wp")
+    Command::cargo_bin("linear-mg")
         .unwrap()
         .arg("--version")
         .assert()
         .success()
-        .stdout(predicate::str::contains("linear-wp"));
+        .stdout(predicate::str::contains("linear-mg"));
 }
 
 #[test]
 fn test_no_api_key_error() {
     let tmp = tempfile::tempdir().unwrap();
-    Command::cargo_bin("linear-wp")
+    Command::cargo_bin("linear-mg")
         .unwrap()
         .args(["issues", "list", "--json"])
         .env_remove("LINEAR_API_KEY")
@@ -40,7 +40,7 @@ fn test_no_api_key_error() {
 
 #[test]
 fn test_issues_list_help() {
-    Command::cargo_bin("linear-wp")
+    Command::cargo_bin("linear-mg")
         .unwrap()
         .args(["issues", "list", "--help"])
         .assert()
@@ -53,7 +53,7 @@ fn test_issues_list_help() {
 
 #[test]
 fn test_issues_create_requires_title_and_team() {
-    Command::cargo_bin("linear-wp")
+    Command::cargo_bin("linear-mg")
         .unwrap()
         .args(["issues", "create"])
         .env("LINEAR_API_KEY", "test")
@@ -81,7 +81,7 @@ fn test_all_subcommands_have_help() {
         "attachments",
     ];
     for cmd in commands {
-        Command::cargo_bin("linear-wp")
+        Command::cargo_bin("linear-mg")
             .unwrap()
             .args([cmd, "--help"])
             .assert()

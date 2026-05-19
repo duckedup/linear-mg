@@ -1,6 +1,6 @@
 #[derive(thiserror::Error, Debug)]
 pub enum CliError {
-    #[error("No API key configured. Set LINEAR_API_KEY or run `linear-wp auth init`")]
+    #[error("No API key configured. Set LINEAR_API_KEY or run `linear-mg auth init`")]
     NoApiKey,
 
     #[error("Authentication failed: {0}")]

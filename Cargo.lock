@@ -780,7 +780,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "linear-wp"
+name = "linear-mg"
 version = "0.3.0"
 dependencies = [
  "assert_cmd",

@@ -18,7 +18,7 @@ use clap::{Parser, Subcommand};
 use common::GlobalArgs;
 
 #[derive(Parser, Debug)]
-#[command(name = "linear-wp", version, about = "CLI for the Linear API")]
+#[command(name = "linear-mg", version, about = "CLI for the Linear API")]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,

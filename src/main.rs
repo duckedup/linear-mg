@@ -1,9 +1,9 @@
 use clap::Parser;
-use linear_wp::cli::{Cli, Commands};
-use linear_wp::client::LinearClient;
-use linear_wp::config::{self, Config};
-use linear_wp::error::CliError;
-use linear_wp::output::OutputFormat;
+use linear_mg::cli::{Cli, Commands};
+use linear_mg::client::LinearClient;
+use linear_mg::config::{self, Config};
+use linear_mg::error::CliError;
+use linear_mg::output::OutputFormat;
 
 fn main() {
     let cli = Cli::parse();
@@ -11,7 +11,7 @@ fn main() {
 
     if cli.global.verbose {
         tracing_subscriber::fmt()
-            .with_env_filter("linear_wp=debug")
+            .with_env_filter("linear_mg=debug")
             .init();
     }
 

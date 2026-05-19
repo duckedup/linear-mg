@@ -25,7 +25,7 @@ impl Config {
     pub fn path() -> PathBuf {
         dirs::config_dir()
             .unwrap_or_else(|| PathBuf::from("."))
-            .join("linear-wp")
+            .join("linear-mg")
             .join("config.toml")
     }
 
