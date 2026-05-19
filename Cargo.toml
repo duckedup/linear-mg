@@ -1,11 +1,11 @@
 [package]
-name = "linear-mg"
+name = "linear-wp"
 version = "0.2.0"
 edition = "2024"
 rust-version = "1.95"
 description = "A CLI tool for the Linear GraphQL API, designed for AI agent consumption"
 license = "MIT"
-repository = "https://github.com/duckedup/linear-mg"
+repository = "https://github.com/duckedup/linear-wp"
 keywords = ["linear", "graphql", "cli", "project-management", "api"]
 categories = ["command-line-utilities", "development-tools"]
 readme = "README.md"

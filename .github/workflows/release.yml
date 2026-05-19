@@ -111,20 +111,20 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           cd target/${{ matrix.target }}/release
-          tar czf ../../../linear-mg-${{ matrix.target }}.tar.gz linear-mg
+          tar czf ../../../linear-wp-${{ matrix.target }}.tar.gz linear-wp
           cd ../../..
 
       - name: Package (windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          Compress-Archive -Path "target/${{ matrix.target }}/release/linear-mg.exe" -DestinationPath "linear-mg-${{ matrix.target }}.zip"
+          Compress-Archive -Path "target/${{ matrix.target }}/release/linear-wp.exe" -DestinationPath "linear-wp-${{ matrix.target }}.zip"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v5
         with:
           name: binary-${{ matrix.target }}
-          path: linear-mg-${{ matrix.target }}.*
+          path: linear-wp-${{ matrix.target }}.*
 
   publish-crate:
     name: Publish to crates.io
@@ -189,14 +189,14 @@ jobs:
           fi
 
           gh release create "${{ needs.check-version.outputs.tag }}" \
-            linear-mg-*.tar.gz linear-mg-*.zip \
+            linear-wp-*.tar.gz linear-wp-*.zip \
             --title "${{ needs.check-version.outputs.tag }}" \
-            --notes "## linear-mg ${{ needs.check-version.outputs.version }}
+            --notes "## linear-wp ${{ needs.check-version.outputs.version }}
 
           \`\`\`sh
-          cargo binstall linear-mg
+          cargo binstall linear-wp
           # or
-          cargo install linear-mg@${{ needs.check-version.outputs.version }}
+          cargo install linear-wp@${{ needs.check-version.outputs.version }}
           \`\`\`
 
           ### Changes

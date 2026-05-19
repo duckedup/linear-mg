@@ -9,6 +9,7 @@ pub mod issues;
 pub mod labels;
 pub mod milestones;
 pub mod projects;
+pub mod resolve;
 pub mod teams;
 pub mod users;
 pub mod workflow_states;
@@ -17,7 +18,7 @@ use clap::{Parser, Subcommand};
 use common::GlobalArgs;
 
 #[derive(Parser, Debug)]
-#[command(name = "linear-mg", version, about = "CLI for the Linear API")]
+#[command(name = "linear-wp", version, about = "CLI for the Linear API")]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,

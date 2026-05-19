@@ -1,4 +1,4 @@
-use linear_mg::config::auth::resolve_api_key;
+use linear_wp::config::auth::resolve_api_key;
 use std::sync::Mutex;
 
 static ENV_LOCK: Mutex<()> = Mutex::new(());

@@ -1,4 +1,4 @@
-use linear_mg::client::LinearClient;
+use linear_wp::client::LinearClient;
 use wiremock::MockServer;
 
 pub async fn setup_mock_server() -> (MockServer, LinearClient) {

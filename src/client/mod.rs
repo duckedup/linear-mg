@@ -36,7 +36,7 @@ impl LinearClient {
 
     pub fn with_endpoint(api_key: String, endpoint: String) -> Self {
         let http = reqwest::Client::builder()
-            .user_agent(format!("linear-mg/{}", env!("CARGO_PKG_VERSION")))
+            .user_agent(format!("linear-wp/{}", env!("CARGO_PKG_VERSION")))
             .build()
             .expect("failed to build HTTP client");
         Self {

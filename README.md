@@ -1,4 +1,4 @@
-# linear-mg
+# linear-wp
 
 A Rust CLI and library for the [Linear](https://linear.app) GraphQL API, designed for AI agent consumption.
 
@@ -7,13 +7,13 @@ Output is human-readable by default, with `--json` for structured JSON output wi
 ## Install
 
 ```sh
-cargo binstall linear-mg
+cargo binstall linear-wp
 ```
 
 Or from source:
 
 ```sh
-cargo install linear-mg
+cargo install linear-wp
 ```
 
 ## Development
@@ -48,16 +48,16 @@ CI runs `just check` on every pull request and requires a version bump in `Cargo
 
 ```sh
 # Interactive setup — prompts for your API key and validates it
-linear-mg auth init
+linear-wp auth init
 
 # Or pass the key directly
-linear-mg auth init --key lin_api_xxxxx
+linear-wp auth init --key lin_api_xxxxx
 
 # Check who you're authenticated as
-linear-mg auth status
+linear-wp auth status
 
 # Remove stored credentials
-linear-mg auth revoke
+linear-wp auth revoke
 ```
 
 You can also set your API key via environment variable:
@@ -69,7 +69,7 @@ export LINEAR_API_KEY=lin_api_xxxxx
 Or override per-command:
 
 ```sh
-linear-mg --api-key lin_api_xxxxx issues list
+linear-wp --api-key lin_api_xxxxx issues list
 ```
 
 Resolution order: `--api-key` flag > `LINEAR_API_KEY` env var > config file.
@@ -77,7 +77,7 @@ Resolution order: `--api-key` flag > `LINEAR_API_KEY` env var > config file.
 ## Usage
 
 ```
-linear-mg [OPTIONS] <COMMAND>
+linear-wp [OPTIONS] <COMMAND>
 
 Commands:
   auth         Manage authentication
@@ -104,90 +104,90 @@ Options:
 
 ```sh
 # List issues for a team
-linear-mg issues list --team ENG --limit 10
+linear-wp issues list --team ENG --limit 10
 
 # Filter by state and assignee
-linear-mg issues list --team ENG --state "In Progress" --assignee USER_ID
+linear-wp issues list --team ENG --state "In Progress" --assignee me
 
 # Get a single issue by identifier
-linear-mg issues get ENG-123
+linear-wp issues get ENG-123
 
-# Create an issue
-linear-mg issues create --team ENG --title "Fix login bug" --priority 1 --assignee USER_ID
+# Create an issue (accepts names, emails, "me" — IDs resolved automatically)
+linear-wp issues create --team ENG --title "Fix login bug" --priority 1 --assignee me --state "In Progress"
 
-# Update an issue (change status, reassign, etc.)
-linear-mg issues update ISSUE_ID --state STATE_ID --assignee NEW_USER_ID
+# Update an issue (--state and --assignee accept names, not just IDs)
+linear-wp issues update ENG-123 --state "In Progress" --assignee me
 
 # Add/remove labels
-linear-mg issues update ISSUE_ID --add-labels LABEL_ID_1,LABEL_ID_2
+linear-wp issues update ISSUE_ID --add-labels LABEL_ID_1,LABEL_ID_2
 
 # Archive or delete
-linear-mg issues archive ISSUE_ID
-linear-mg issues delete ISSUE_ID
+linear-wp issues archive ISSUE_ID
+linear-wp issues delete ISSUE_ID
 
 # Search
-linear-mg issues search "login bug"
+linear-wp issues search "login bug"
 ```
 
 ### Teams & Users
 
 ```sh
-linear-mg teams list
-linear-mg teams get TEAM_ID
+linear-wp teams list
+linear-wp teams get TEAM_ID
 
-linear-mg users list
-linear-mg users me        # Current authenticated user
-linear-mg users get USER_ID
+linear-wp users list
+linear-wp users me        # Current authenticated user
+linear-wp users get USER_ID
 ```
 
 ### Projects
 
 ```sh
-linear-mg projects list
-linear-mg projects create --name "Q3 Roadmap" --teams TEAM_ID_1,TEAM_ID_2
-linear-mg projects update PROJECT_ID --name "Q3 Roadmap v2"
-linear-mg projects archive PROJECT_ID
+linear-wp projects list
+linear-wp projects create --name "Q3 Roadmap" --teams TEAM_ID_1,TEAM_ID_2
+linear-wp projects update PROJECT_ID --name "Q3 Roadmap v2"
+linear-wp projects archive PROJECT_ID
 ```
 
 ### Comments
 
 ```sh
-linear-mg comments list
-linear-mg comments create --issue ENG-123 --body "This is a comment"
-linear-mg comments update COMMENT_ID --body "Updated comment"
-linear-mg comments delete COMMENT_ID
+linear-wp comments list
+linear-wp comments create --issue ENG-123 --body "This is a comment"
+linear-wp comments update COMMENT_ID --body "Updated comment"
+linear-wp comments delete COMMENT_ID
 ```
 
 ### Workflow States, Labels, Cycles
 
 ```sh
 # List all workflow states (useful for finding state IDs)
-linear-mg states list
+linear-wp states list
 
 # List and create labels
-linear-mg labels list
-linear-mg labels create --name "P0" --color "#FF0000"
+linear-wp labels list
+linear-wp labels create --name "P0" --color "#FF0000"
 
 # List cycles
-linear-mg cycles list
-linear-mg cycles get CYCLE_ID
+linear-wp cycles list
+linear-wp cycles get CYCLE_ID
 ```
 
 ### Documents, Initiatives, Milestones, Attachments
 
 ```sh
-linear-mg documents list
-linear-mg documents create --title "Design Doc" --content "# Overview\n..."
+linear-wp documents list
+linear-wp documents create --title "Design Doc" --content "# Overview\n..."
 
-linear-mg initiatives list
-linear-mg initiatives get INITIATIVE_ID
+linear-wp initiatives list
+linear-wp initiatives get INITIATIVE_ID
 
-linear-mg milestones list
-linear-mg milestones create --name "Beta launch" --project PROJECT_ID
+linear-wp milestones list
+linear-wp milestones create --name "Beta launch" --project PROJECT_ID
 
-linear-mg attachments list
-linear-mg attachments create --issue ENG-123 --title "PR Link" --url "https://github.com/..."
-linear-mg attachments delete ATTACHMENT_ID
+linear-wp attachments list
+linear-wp attachments create --issue ENG-123 --title "PR Link" --url "https://github.com/..."
+linear-wp attachments delete ATTACHMENT_ID
 ```
 
 ### Pagination
@@ -196,19 +196,19 @@ All list commands support pagination:
 
 ```sh
 # Limit results (default: 50, max: 250)
-linear-mg issues list --limit 10
+linear-wp issues list --limit 10
 
 # Auto-paginate through all results
-linear-mg issues list --all
+linear-wp issues list --all
 
 # Manual cursor-based pagination
-linear-mg issues list --limit 50 --after CURSOR_VALUE
+linear-wp issues list --limit 50 --after CURSOR_VALUE
 
 # Include archived items
-linear-mg issues list --include-archived
+linear-wp issues list --include-archived
 
 # Order by updated time instead of created time
-linear-mg issues list --order-by updated-at
+linear-wp issues list --order-by updated-at
 ```
 
 ## Output Format
@@ -217,10 +217,10 @@ Output is human-readable by default. Use `--json` for structured JSON output.
 
 ```sh
 # Pretty (default)
-linear-mg issues list --team ENG
+linear-wp issues list --team ENG
 
 # JSON for scripts and agents
-linear-mg issues list --team ENG --json
+linear-wp issues list --team ENG --json
 ```
 
 **List responses** (JSON) include pagination info:

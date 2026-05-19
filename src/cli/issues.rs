@@ -1,4 +1,5 @@
 use crate::cli::common::PaginationArgs;
+use crate::cli::resolve;
 use crate::client::LinearClient;
 use crate::client::paginator::paginate;
 use crate::error::CliError;
@@ -160,19 +161,22 @@ impl IssuesCommand {
                 estimate,
                 parent,
             } => {
-                let mut input = serde_json::json!({ "teamId": team, "title": title });
+                let team_id = resolve::resolve_team(client, &team).await?;
+                let mut input = serde_json::json!({ "teamId": &team_id, "title": title });
                 let obj = input.as_object_mut().unwrap();
                 if let Some(v) = description {
                     obj.insert("description".into(), v.into());
                 }
                 if let Some(v) = assignee {
-                    obj.insert("assigneeId".into(), v.into());
+                    let id = resolve::resolve_assignee(client, &v).await?;
+                    obj.insert("assigneeId".into(), id.into());
                 }
                 if let Some(v) = priority {
                     obj.insert("priority".into(), v.into());
                 }
                 if let Some(v) = state {
-                    obj.insert("stateId".into(), v.into());
+                    let id = resolve::resolve_state(client, &v, Some(&team_id)).await?;
+                    obj.insert("stateId".into(), id.into());
                 }
                 if let Some(v) = project {
                     obj.insert("projectId".into(), v.into());
@@ -218,6 +222,15 @@ impl IssuesCommand {
             } => {
                 let mut input = serde_json::json!({});
                 let obj = input.as_object_mut().unwrap();
+
+                let resolved_team_id = if let Some(ref v) = team {
+                    let tid = resolve::resolve_team(client, v).await?;
+                    obj.insert("teamId".into(), tid.clone().into());
+                    Some(tid)
+                } else {
+                    None
+                };
+
                 if let Some(v) = title {
                     obj.insert("title".into(), v.into());
                 }
@@ -225,13 +238,22 @@ impl IssuesCommand {
                     obj.insert("description".into(), v.into());
                 }
                 if let Some(v) = assignee {
-                    obj.insert("assigneeId".into(), v.into());
+                    let uid = resolve::resolve_assignee(client, &v).await?;
+                    obj.insert("assigneeId".into(), uid.into());
                 }
                 if let Some(v) = priority {
                     obj.insert("priority".into(), v.into());
                 }
                 if let Some(v) = state {
-                    obj.insert("stateId".into(), v.into());
+                    let team_ctx = match &resolved_team_id {
+                        Some(tid) => Some(tid.clone()),
+                        None => match resolve::extract_team_key(&id) {
+                            Some(key) => resolve::resolve_team(client, key).await.ok(),
+                            None => None,
+                        },
+                    };
+                    let sid = resolve::resolve_state(client, &v, team_ctx.as_deref()).await?;
+                    obj.insert("stateId".into(), sid.into());
                 }
                 if let Some(v) = project {
                     obj.insert("projectId".into(), v.into());
@@ -253,9 +275,6 @@ impl IssuesCommand {
                 }
                 if let Some(v) = parent {
                     obj.insert("parentId".into(), v.into());
-                }
-                if let Some(v) = team {
-                    obj.insert("teamId".into(), v.into());
                 }
 
                 let payload = client.update_issue(&id, input).await?;
