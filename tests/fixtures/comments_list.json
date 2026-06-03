@@ -1,0 +1,36 @@
+{
+  "data": {
+    "comments": {
+      "nodes": [
+        {
+          "id": "comment-1",
+          "body": "This looks good to me",
+          "createdAt": "2024-06-01T00:00:00.000Z",
+          "updatedAt": "2024-06-01T00:00:00.000Z",
+          "editedAt": null,
+          "archivedAt": null,
+          "resolvedAt": null,
+          "url": "https://linear.app/test/issue/ENG-1#comment-1",
+          "user": {
+            "id": "user-123",
+            "name": "Test User",
+            "displayName": "Test User",
+            "email": "test@example.com"
+          },
+          "issue": {
+            "id": "issue-1",
+            "identifier": "ENG-1",
+            "title": "Fix bug in login"
+          },
+          "parent": null
+        }
+      ],
+      "pageInfo": {
+        "hasNextPage": false,
+        "hasPreviousPage": false,
+        "endCursor": "cursor-end",
+        "startCursor": "cursor-start"
+      }
+    }
+  }
+}
