@@ -25,9 +25,7 @@ pub enum CommentsAction {
         issue: Option<String>,
     },
     /// Get a single comment by ID
-    Get {
-        id: String,
-    },
+    Get { id: String },
     /// Create a new comment on an issue
     Create {
         /// Issue ID or identifier (e.g., "ENG-123")
@@ -47,9 +45,7 @@ pub enum CommentsAction {
         body: String,
     },
     /// Delete a comment
-    Delete {
-        id: String,
-    },
+    Delete { id: String },
 }
 
 impl CommentsCommand {
@@ -81,10 +77,10 @@ impl CommentsCommand {
             } => {
                 let issue_id = resolve::resolve_issue(client, &issue).await?;
                 let mut input = serde_json::json!({ "issueId": issue_id, "body": body });
-                if let Some(p) = parent {
-                    if let Some(obj) = input.as_object_mut() {
-                        obj.insert("parentId".into(), p.into());
-                    }
+                if let Some(p) = parent
+                    && let Some(obj) = input.as_object_mut()
+                {
+                    obj.insert("parentId".into(), p.into());
                 }
                 let p = client.create_comment(input).await?;
                 print_output(
