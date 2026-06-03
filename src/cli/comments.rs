@@ -82,10 +82,9 @@ impl CommentsCommand {
                 let issue_id = resolve::resolve_issue(client, &issue).await?;
                 let mut input = serde_json::json!({ "issueId": issue_id, "body": body });
                 if let Some(p) = parent {
-                    input
-                        .as_object_mut()
-                        .unwrap()
-                        .insert("parentId".into(), p.into());
+                    if let Some(obj) = input.as_object_mut() {
+                        obj.insert("parentId".into(), p.into());
+                    }
                 }
                 let p = client.create_comment(input).await?;
                 print_output(
