@@ -21,6 +21,14 @@ pub fn extract_team_key(identifier: &str) -> Option<&str> {
     }
 }
 
+pub async fn resolve_issue(client: &LinearClient, value: &str) -> Result<String, CliError> {
+    if is_uuid(value) {
+        return Ok(value.to_string());
+    }
+    let issue = client.get_issue(value).await?;
+    Ok(issue.id)
+}
+
 pub async fn resolve_assignee(client: &LinearClient, value: &str) -> Result<String, CliError> {
     if is_uuid(value) {
         return Ok(value.to_string());

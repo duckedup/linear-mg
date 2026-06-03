@@ -94,16 +94,17 @@ impl LinearClient {
         after: Option<String>,
         include_archived: bool,
         order_by: &str,
+        filter: Option<serde_json::Value>,
     ) -> Result<Connection<Comment>, CliError> {
         let query = format!(
-            "query($first: Int, $after: String, $includeArchived: Boolean, $orderBy: PaginationOrderBy) {{
-                comments(first: $first, after: $after, includeArchived: $includeArchived, orderBy: $orderBy) {{
+            "query($first: Int, $after: String, $includeArchived: Boolean, $orderBy: PaginationOrderBy, $filter: CommentFilter) {{
+                comments(first: $first, after: $after, includeArchived: $includeArchived, orderBy: $orderBy, filter: $filter) {{
                     nodes {{ {COMMENT_FIELDS} }}
                     pageInfo {{ hasNextPage hasPreviousPage endCursor startCursor }}
                 }}
             }}"
         );
-        let vars = serde_json::json!({ "first": first, "after": after, "includeArchived": include_archived, "orderBy": order_by });
+        let vars = serde_json::json!({ "first": first, "after": after, "includeArchived": include_archived, "orderBy": order_by, "filter": filter });
         let resp: CommentsQuery = self.query(&query, Some(vars)).await?;
         Ok(resp.comments)
     }
