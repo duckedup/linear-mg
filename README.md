@@ -106,8 +106,13 @@ Options:
 # List issues for a team
 linear-mg issues list --team ENG --limit 10
 
-# Filter by state and assignee
+# Filter by state and assignee (--assignee accepts "me", a name, or an email;
+# --state accepts a status name)
 linear-mg issues list --team ENG --state "In Progress" --assignee me
+
+# List issues in a project by assignee and status
+# (--project accepts a project name or slug, not just an ID)
+linear-mg issues list --project "Mobile App" --assignee me --state "In Progress"
 
 # Get a single issue by identifier
 linear-mg issues get ENG-123
@@ -118,8 +123,9 @@ linear-mg issues create --team ENG --title "Fix login bug" --priority 1 --assign
 # Update an issue (--state and --assignee accept names, not just IDs)
 linear-mg issues update ENG-123 --state "In Progress" --assignee me
 
-# Add/remove labels
-linear-mg issues update ISSUE_ID --add-labels LABEL_ID_1,LABEL_ID_2
+# Add/remove labels (accept label names or IDs; names are scoped to the issue's team)
+linear-mg issues create --team ENG --title "..." --labels Bug,"Needs Review"
+linear-mg issues update ENG-123 --add-labels Bug --remove-labels "Needs Review"
 
 # Archive or delete
 linear-mg issues archive ISSUE_ID
@@ -127,6 +133,27 @@ linear-mg issues delete ISSUE_ID
 
 # Search
 linear-mg issues search "login bug"
+```
+
+### Issue relations
+
+Link issues together as blocking, blocked-by, related, duplicate, or similar.
+`issues get` shows an issue's relations; `issues relations` lists them with the
+relation ID needed to remove one. IDs may be UUIDs or identifiers (e.g. `ENG-1`).
+
+```sh
+# Create a relation (exactly one direction flag is required)
+linear-mg issues relate ENG-1 --blocks ENG-2         # ENG-1 blocks ENG-2
+linear-mg issues relate ENG-1 --blocked-by ENG-3     # ENG-1 is blocked by ENG-3
+linear-mg issues relate ENG-1 --related-to ENG-4
+linear-mg issues relate ENG-1 --duplicate-of ENG-5
+linear-mg issues relate ENG-1 --similar-to ENG-6
+
+# List all relations touching an issue (both directions)
+linear-mg issues relations ENG-1
+
+# Remove a relation by its relation ID
+linear-mg issues unrelate RELATION_ID
 ```
 
 ### Teams & Users
@@ -144,6 +171,12 @@ linear-mg users get USER_ID
 
 ```sh
 linear-mg projects list
+
+# Filter projects by status, lead, health, or name
+linear-mg projects list --status "In Progress"
+linear-mg projects list --lead me --health atRisk
+linear-mg projects list --name "roadmap"
+
 linear-mg projects create --name "Q3 Roadmap" --teams TEAM_ID_1,TEAM_ID_2
 linear-mg projects update PROJECT_ID --name "Q3 Roadmap v2"
 linear-mg projects archive PROJECT_ID
@@ -164,9 +197,13 @@ linear-mg comments delete COMMENT_ID
 # List all workflow states (useful for finding state IDs)
 linear-mg states list
 
-# List and create labels
+# Manage labels (get/update/delete accept a label name or ID;
+# --team and --parent accept names too)
 linear-mg labels list
-linear-mg labels create --name "P0" --color "#FF0000"
+linear-mg labels get "P0"
+linear-mg labels create --name "P0" --color "#FF0000" --team ENG
+linear-mg labels update "P0" --name "P0 - Critical" --color "#CC0000"
+linear-mg labels delete "P0"
 
 # List cycles
 linear-mg cycles list
