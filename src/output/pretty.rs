@@ -9,6 +9,7 @@ use crate::graphql::issues::Issue;
 use crate::graphql::labels::IssueLabel;
 use crate::graphql::milestones::ProjectMilestone;
 use crate::graphql::projects::Project;
+use crate::graphql::relations::{IssueRelation, IssueRelationList};
 use crate::graphql::teams::Team;
 use crate::graphql::users::User;
 use crate::graphql::workflow_states::WorkflowState;
@@ -166,6 +167,30 @@ impl PrettyPrint for Issue {
         }
         if let Some(ref p) = self.parent {
             out.push_str(&format!("\n  Parent:    {}: {}", p.identifier, p.title));
+        }
+        for rel in &self.relations.nodes {
+            let label = match rel.relation_type.as_str() {
+                "blocks" => "Blocking",
+                "duplicate" => "Duplicate of",
+                "similar" => "Similar to",
+                _ => "Related to",
+            };
+            out.push_str(&format!(
+                "\n  {label}: {}: {}",
+                rel.related_issue.identifier, rel.related_issue.title
+            ));
+        }
+        for rel in &self.inverse_relations.nodes {
+            let label = match rel.relation_type.as_str() {
+                "blocks" => "Blocked by",
+                "duplicate" => "Duplicated by",
+                "similar" => "Similar to",
+                _ => "Related to",
+            };
+            out.push_str(&format!(
+                "\n  {label}: {}: {}",
+                rel.issue.identifier, rel.issue.title
+            ));
         }
         if let Some(ref d) = self.description {
             let desc = truncate(d.trim(), 200);
@@ -621,6 +646,54 @@ impl PrettyPrint for Attachment {
                 .as_ref()
                 .map_or("-".into(), |c| c.display_name.clone()),
         ]
+    }
+}
+
+// -- IssueRelation --
+
+impl PrettyPrint for IssueRelation {
+    fn pretty(&self) -> String {
+        let mut out = format!(
+            "{} {} {}",
+            self.issue.identifier, self.relation_type, self.related_issue.identifier
+        );
+        out.push_str(&format!(
+            "\n\n  {}: {}",
+            self.issue.identifier, self.issue.title
+        ));
+        out.push_str(&format!(
+            "\n  {}: {}",
+            self.related_issue.identifier, self.related_issue.title
+        ));
+        out.push_str(&format!("\n  Type: {}", self.relation_type));
+        out.push_str(&format!("\n  ID:   {}", self.id));
+        out
+    }
+}
+
+// -- IssueRelationList --
+
+impl PrettyPrint for IssueRelationList {
+    fn pretty(&self) -> String {
+        if self.nodes.is_empty() {
+            return "No relations.".into();
+        }
+        let rows: Vec<Vec<String>> = self
+            .nodes
+            .iter()
+            .map(|r| {
+                vec![
+                    r.direction.clone(),
+                    r.other.identifier.clone(),
+                    truncate(&r.other.title, 50),
+                    r.id.clone(),
+                ]
+            })
+            .collect();
+        let mut out = align_columns(&rows);
+        let n = self.nodes.len();
+        write!(out, "\n{n} relations").unwrap();
+        out
     }
 }
 

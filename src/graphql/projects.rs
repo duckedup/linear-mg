@@ -105,16 +105,17 @@ impl LinearClient {
         after: Option<String>,
         include_archived: bool,
         order_by: &str,
+        filter: Option<serde_json::Value>,
     ) -> Result<Connection<Project>, CliError> {
         let query = format!(
-            "query($first: Int, $after: String, $includeArchived: Boolean, $orderBy: PaginationOrderBy) {{
-                projects(first: $first, after: $after, includeArchived: $includeArchived, orderBy: $orderBy) {{
+            "query($first: Int, $after: String, $includeArchived: Boolean, $orderBy: PaginationOrderBy, $filter: ProjectFilter) {{
+                projects(first: $first, after: $after, includeArchived: $includeArchived, orderBy: $orderBy, filter: $filter) {{
                     nodes {{ {PROJECT_FIELDS} }}
                     pageInfo {{ hasNextPage hasPreviousPage endCursor startCursor }}
                 }}
             }}"
         );
-        let vars = serde_json::json!({ "first": first, "after": after, "includeArchived": include_archived, "orderBy": order_by });
+        let vars = serde_json::json!({ "first": first, "after": after, "includeArchived": include_archived, "orderBy": order_by, "filter": filter });
         let resp: ProjectsQuery = self.query(&query, Some(vars)).await?;
         Ok(resp.projects)
     }

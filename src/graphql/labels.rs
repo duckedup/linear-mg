@@ -41,6 +41,12 @@ const LABEL_FIELDS: &str = "
     parent { id name color }
 ";
 
+#[derive(Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LabelDeletePayload {
+    pub success: bool,
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LabelsQuery {
@@ -48,8 +54,23 @@ pub struct LabelsQuery {
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct LabelQuery {
+    pub issue_label: IssueLabel,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LabelCreateResponse {
     pub issue_label_create: IssueLabelPayload,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LabelUpdateResponse {
+    pub issue_label_update: IssueLabelPayload,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LabelDeleteResponse {
+    pub issue_label_delete: LabelDeletePayload,
 }
 
 impl LinearClient {
@@ -73,6 +94,13 @@ impl LinearClient {
         Ok(resp.issue_labels)
     }
 
+    pub async fn get_label(&self, id: &str) -> Result<IssueLabel, CliError> {
+        let query = format!("query($id: String!) {{ issueLabel(id: $id) {{ {LABEL_FIELDS} }} }}");
+        let vars = serde_json::json!({ "id": id });
+        let resp: LabelQuery = self.query(&query, Some(vars)).await?;
+        Ok(resp.issue_label)
+    }
+
     pub async fn create_label(
         &self,
         input: serde_json::Value,
@@ -83,5 +111,25 @@ impl LinearClient {
         let vars = serde_json::json!({ "input": input });
         let resp: LabelCreateResponse = self.query(&query, Some(vars)).await?;
         Ok(resp.issue_label_create)
+    }
+
+    pub async fn update_label(
+        &self,
+        id: &str,
+        input: serde_json::Value,
+    ) -> Result<IssueLabelPayload, CliError> {
+        let query = format!(
+            "mutation($id: String!, $input: IssueLabelUpdateInput!) {{ issueLabelUpdate(id: $id, input: $input) {{ success issueLabel {{ {LABEL_FIELDS} }} }} }}"
+        );
+        let vars = serde_json::json!({ "id": id, "input": input });
+        let resp: LabelUpdateResponse = self.query(&query, Some(vars)).await?;
+        Ok(resp.issue_label_update)
+    }
+
+    pub async fn delete_label(&self, id: &str) -> Result<LabelDeletePayload, CliError> {
+        let query = "mutation($id: String!) { issueLabelDelete(id: $id) { success } }";
+        let vars = serde_json::json!({ "id": id });
+        let resp: LabelDeleteResponse = self.query(query, Some(vars)).await?;
+        Ok(resp.issue_label_delete)
     }
 }

@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::client::LinearClient;
 use crate::error::CliError;
 use crate::graphql::common::Connection;
+use crate::graphql::relations::RelationConnection;
 
 // -- Response types --
 
@@ -35,6 +36,13 @@ pub struct Issue {
     pub cycle: Option<CycleSlim>,
     pub parent: Option<IssueSlim>,
     pub labels: LabelConnection,
+    /// Relations where this issue is the source. Populated by `get_issue`; empty
+    /// for list/search results (which don't request relations).
+    #[serde(default)]
+    pub relations: RelationConnection,
+    /// Relations where this issue is the target. See `relations`.
+    #[serde(default)]
+    pub inverse_relations: RelationConnection,
 }
 
 #[derive(Deserialize, Debug, Serialize)]
@@ -175,7 +183,13 @@ pub struct IssueDeleteResponse {
 
 impl LinearClient {
     pub async fn get_issue(&self, id: &str) -> Result<Issue, CliError> {
-        let query = format!("query($id: String!) {{ issue(id: $id) {{ {ISSUE_FIELDS} }} }}");
+        let rel = crate::graphql::relations::RELATION_FIELDS;
+        let query = format!(
+            "query($id: String!) {{ issue(id: $id) {{ {ISSUE_FIELDS}
+                relations(first: 250) {{ nodes {{ {rel} }} }}
+                inverseRelations(first: 250) {{ nodes {{ {rel} }} }}
+            }} }}"
+        );
         let vars = serde_json::json!({ "id": id });
         let resp: IssueQuery = self.query(&query, Some(vars)).await?;
         Ok(resp.issue)

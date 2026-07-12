@@ -88,3 +88,61 @@ fn test_all_subcommands_have_help() {
             .success();
     }
 }
+
+#[test]
+fn test_issues_relate_requires_direction() {
+    // No direction flag: fails validation with invalid-input before any network call.
+    Command::cargo_bin("linear-mg")
+        .unwrap()
+        .args(["--json", "issues", "relate", "ENG-1"])
+        .env("LINEAR_API_KEY", "test")
+        .assert()
+        .failure()
+        .code(5)
+        .stderr(predicate::str::contains("invalid_input"));
+}
+
+#[test]
+fn test_issues_relate_rejects_multiple_directions() {
+    Command::cargo_bin("linear-mg")
+        .unwrap()
+        .args([
+            "--json",
+            "issues",
+            "relate",
+            "ENG-1",
+            "--blocks",
+            "ENG-2",
+            "--related-to",
+            "ENG-3",
+        ])
+        .env("LINEAR_API_KEY", "test")
+        .assert()
+        .failure()
+        .code(5)
+        .stderr(predicate::str::contains("invalid_input"));
+}
+
+#[test]
+fn test_issues_relate_help() {
+    Command::cargo_bin("linear-mg")
+        .unwrap()
+        .args(["issues", "relate", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("--blocks"))
+        .stdout(predicate::str::contains("--blocked-by"))
+        .stdout(predicate::str::contains("--duplicate-of"));
+}
+
+#[test]
+fn test_projects_list_help() {
+    Command::cargo_bin("linear-mg")
+        .unwrap()
+        .args(["projects", "list", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("--status"))
+        .stdout(predicate::str::contains("--lead"))
+        .stdout(predicate::str::contains("--health"));
+}

@@ -1,4 +1,5 @@
 use crate::cli::common::PaginationArgs;
+use crate::cli::resolve;
 use crate::client::LinearClient;
 use crate::client::paginator::paginate;
 use crate::error::CliError;
@@ -18,6 +19,18 @@ pub enum ProjectsAction {
     List {
         #[command(flatten)]
         pagination: PaginationArgs,
+        /// Filter by project status name (e.g., "In Progress")
+        #[arg(long)]
+        status: Option<String>,
+        /// Filter by lead (user ID, name, email, or "me")
+        #[arg(long)]
+        lead: Option<String>,
+        /// Filter by health (onTrack, atRisk, offTrack)
+        #[arg(long)]
+        health: Option<String>,
+        /// Filter by name (case-insensitive substring match)
+        #[arg(long)]
+        name: Option<String>,
     },
     Get {
         id: String,
@@ -76,13 +89,25 @@ pub enum ProjectsAction {
 impl ProjectsCommand {
     pub async fn run(self, client: &LinearClient, format: &OutputFormat) -> Result<(), CliError> {
         match self.action {
-            ProjectsAction::List { pagination } => {
+            ProjectsAction::List {
+                pagination,
+                status,
+                lead,
+                health,
+                name,
+            } => {
+                let lead_id = match lead {
+                    Some(l) => Some(resolve::resolve_assignee(client, &l).await?),
+                    None => None,
+                };
+                let filter = build_project_filter(status, lead_id, health, name);
                 let params = pagination.to_paginator_params();
                 let ia = pagination.include_archived;
                 let ob = pagination.order_by.as_str().to_string();
                 let result: ListResponse<Project> = paginate(client, &params, |c, ps, cur| {
                     let ob = ob.clone();
-                    Box::pin(async move { c.list_projects(ps, cur, ia, &ob).await })
+                    let filter = filter.clone();
+                    Box::pin(async move { c.list_projects(ps, cur, ia, &ob, filter).await })
                 })
                 .await?;
                 print_output(&result, format)
@@ -206,5 +231,38 @@ impl ProjectsCommand {
                 )
             }
         }
+    }
+}
+
+fn build_project_filter(
+    status: Option<String>,
+    lead_id: Option<String>,
+    health: Option<String>,
+    name: Option<String>,
+) -> Option<serde_json::Value> {
+    let mut filter = serde_json::Map::new();
+    if let Some(s) = status {
+        filter.insert(
+            "status".into(),
+            serde_json::json!({ "name": { "eqIgnoreCase": s } }),
+        );
+    }
+    if let Some(l) = lead_id {
+        filter.insert("lead".into(), serde_json::json!({ "id": { "eq": l } }));
+    }
+    if let Some(h) = health {
+        filter.insert("health".into(), serde_json::json!({ "eq": h }));
+    }
+    if let Some(n) = name {
+        filter.insert(
+            "name".into(),
+            serde_json::json!({ "containsIgnoreCase": n }),
+        );
+    }
+
+    if filter.is_empty() {
+        None
+    } else {
+        Some(serde_json::Value::Object(filter))
     }
 }
