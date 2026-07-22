@@ -22,7 +22,36 @@
             "identifier": "ENG-1",
             "title": "Fix bug in login"
           },
-          "parent": null
+          "parent": null,
+          "children": {
+            "nodes": [
+              {
+                "id": "reply-1",
+                "body": "Actually, one concern about edge cases",
+                "createdAt": "2024-06-01T01:00:00.000Z",
+                "updatedAt": "2024-06-01T01:00:00.000Z",
+                "editedAt": null,
+                "archivedAt": null,
+                "resolvedAt": null,
+                "url": "https://linear.app/test/issue/ENG-1#reply-1",
+                "user": {
+                  "id": "user-456",
+                  "name": "Reviewer",
+                  "displayName": "Reviewer",
+                  "email": "reviewer@example.com"
+                },
+                "issue": {
+                  "id": "issue-1",
+                  "identifier": "ENG-1",
+                  "title": "Fix bug in login"
+                },
+                "parent": {
+                  "id": "comment-1",
+                  "body": "This looks good to me"
+                }
+              }
+            ]
+          }
         }
       ],
       "pageInfo": {

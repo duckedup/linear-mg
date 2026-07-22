@@ -3,7 +3,7 @@ use crate::cli::resolve;
 use crate::client::LinearClient;
 use crate::client::paginator::paginate;
 use crate::error::CliError;
-use crate::graphql::comments::Comment;
+use crate::graphql::comments::{Comment, CommentThreads};
 use crate::graphql::common::{ListResponse, MutationResponse};
 use crate::output::{OutputFormat, print_output};
 use clap::Subcommand;
@@ -16,13 +16,17 @@ pub struct CommentsCommand {
 
 #[derive(Subcommand, Debug)]
 pub enum CommentsAction {
-    /// List comments, optionally filtered by issue
+    /// List comments. Defaults to thread roots (with a preview of replies);
+    /// use --parent to page through the replies of one comment.
     List {
         #[command(flatten)]
         pagination: PaginationArgs,
         /// Filter by issue ID or identifier (e.g., "ENG-123")
         #[arg(long)]
         issue: Option<String>,
+        /// List replies to this comment ID (paginated). Omit to list thread roots.
+        #[arg(long)]
+        parent: Option<String>,
     },
     /// Get a single comment by ID
     Get { id: String },
@@ -51,13 +55,25 @@ pub enum CommentsAction {
 impl CommentsCommand {
     pub async fn run(self, client: &LinearClient, format: &OutputFormat) -> Result<(), CliError> {
         match self.action {
-            CommentsAction::List { pagination, issue } => {
-                let filter = if let Some(ref iss) = issue {
-                    let issue_id = resolve::resolve_issue(client, iss).await?;
-                    Some(serde_json::json!({ "issue": { "id": { "eq": issue_id } } }))
-                } else {
-                    None
+            CommentsAction::List {
+                pagination,
+                issue,
+                parent,
+            } => {
+                // With --parent, page through one comment's replies. Otherwise
+                // fetch thread roots only (parent is null); their replies come
+                // back nested under each root's `children`. Without the
+                // parent-null filter, replies are omitted entirely (Linear's
+                // comments connection returns roots).
+                let mut filter = match parent {
+                    Some(ref pid) => serde_json::json!({ "parent": { "id": { "eq": pid } } }),
+                    None => serde_json::json!({ "parent": { "null": true } }),
                 };
+                if let Some(ref iss) = issue {
+                    let issue_id = resolve::resolve_issue(client, iss).await?;
+                    filter["issue"] = serde_json::json!({ "id": { "eq": issue_id } });
+                }
+                let filter = Some(filter);
                 let params = pagination.to_paginator_params();
                 let ia = pagination.include_archived;
                 let ob = pagination.order_by.as_str().to_string();
@@ -67,7 +83,7 @@ impl CommentsCommand {
                     Box::pin(async move { c.list_comments(ps, cur, ia, &ob, filter).await })
                 })
                 .await?;
-                print_output(&result, format)
+                print_output(&CommentThreads(result), format)
             }
             CommentsAction::Get { id } => print_output(&client.get_comment(&id).await?, format),
             CommentsAction::Create {

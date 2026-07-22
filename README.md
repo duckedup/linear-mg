@@ -185,11 +185,24 @@ linear-mg projects archive PROJECT_ID
 ### Comments
 
 ```sh
-linear-mg comments list
+linear-mg comments list                                    # thread roots, replies nested beneath
+linear-mg comments list --issue ENG-123
+linear-mg comments list --parent COMMENT_ID                # page through one comment's replies
+linear-mg comments get COMMENT_ID                          # a comment plus its reply thread
 linear-mg comments create --issue ENG-123 --body "This is a comment"
+linear-mg comments create --issue ENG-123 --body "A reply" --parent COMMENT_ID
 linear-mg comments update COMMENT_ID --body "Updated comment"
 linear-mg comments delete COMMENT_ID
 ```
+
+Nested replies are surfaced under their parent: pretty output renders each thread
+as a block with replies indented (`↳`), and JSON output nests replies in a
+`children` array on each root comment (each reply also carries its `parent`).
+
+Each thread previews up to 50 replies inline. When a thread has more, the output
+flags it (`… more replies — comments list --parent <id>`); `comments list
+--parent <id>` lists that comment's replies with the usual `--first` / `--after`
+pagination.
 
 ### Workflow States, Labels, Cycles
 
