@@ -1,6 +1,6 @@
 use super::PrettyPrint;
 use crate::graphql::attachments::Attachment;
-use crate::graphql::comments::Comment;
+use crate::graphql::comments::{Comment, CommentThreads};
 use crate::graphql::common::{ListResponse, MutationResponse};
 use crate::graphql::cycles::Cycle;
 use crate::graphql::documents::Document;
@@ -343,37 +343,121 @@ impl PrettyPrint for User {
 
 // -- Comment --
 
+fn comment_author(c: &Comment) -> String {
+    c.user
+        .as_ref()
+        .map_or("unknown".into(), |u| u.display_name.clone())
+}
+
+/// A single indented reply line: `↳ Bob (2024-06-01): Actually, one concern..`
+fn reply_line(c: &Comment) -> String {
+    format!(
+        "    ↳ {} ({}): {}",
+        comment_author(c),
+        short_date(&c.created_at),
+        truncate(c.body.lines().next().unwrap_or("").trim(), 70)
+    )
+}
+
+/// Render a comment's replies: a `Replies (N):` header, one line per fetched
+/// reply, and — when the thread has more replies than were pulled inline — a
+/// hint pointing at the command that pages through the rest. Empty when there
+/// are no replies.
+fn replies_section(c: &Comment) -> String {
+    if c.children.nodes.is_empty() {
+        return String::new();
+    }
+    let mut out = format!("\n  Replies ({}):", c.children.nodes.len());
+    for reply in &c.children.nodes {
+        out.push_str(&format!("\n{}", reply_line(reply)));
+    }
+    if c.children.has_more() {
+        out.push_str(&format!(
+            "\n    … more replies — comments list --parent {}",
+            c.id
+        ));
+    }
+    out
+}
+
 impl PrettyPrint for Comment {
     fn pretty(&self) -> String {
         let issue_ref = self.issue.as_ref().map_or("(unknown)".into(), |i| {
             format!("{}: {}", i.identifier, i.title)
         });
-        let author = self
-            .user
-            .as_ref()
-            .map_or("unknown".into(), |u| u.display_name.clone());
         let mut out = format!("Comment on {issue_ref}");
-        out.push_str(&format!("\n\n  Author:   {author}"));
+        out.push_str(&format!("\n\n  Author:   {}", comment_author(self)));
         out.push_str(&format!("\n  Created:  {}", short_date(&self.created_at)));
         if self.resolved_at.is_some() {
             out.push_str("\n  Resolved: yes");
         }
+        // Flag when this comment is itself a reply, so a `get <reply-id>` makes
+        // its place in the thread obvious.
+        if let Some(ref p) = self.parent {
+            out.push_str(&format!(
+                "\n  In reply to: {}",
+                truncate(p.body.lines().next().unwrap_or("").trim(), 60)
+            ));
+        }
         out.push_str(&format!("\n  URL:      {}", self.url));
         out.push_str(&format!("\n\n  {}", truncate(self.body.trim(), 500)));
+        if !self.children.nodes.is_empty() {
+            out.push('\n');
+            out.push_str(&replies_section(self));
+        }
         out
     }
+}
 
-    fn pretty_row(&self) -> Vec<String> {
-        vec![
-            self.issue
-                .as_ref()
-                .map_or("-".into(), |i| i.identifier.clone()),
-            self.user
-                .as_ref()
-                .map_or("-".into(), |u| u.display_name.clone()),
-            truncate(self.body.lines().next().unwrap_or(""), 60),
-            short_date(&self.created_at).into(),
-        ]
+// -- CommentThreads (list) --
+
+/// Compact thread block used by `comments list`: a root comment header, its body
+/// first line, and any replies indented beneath it.
+fn thread_block(c: &Comment) -> String {
+    let issue_ref = c
+        .issue
+        .as_ref()
+        .map_or("(unknown)".into(), |i| i.identifier.clone());
+    let mut out = format!(
+        "Comment on {} · {} · {}",
+        issue_ref,
+        comment_author(c),
+        short_date(&c.created_at)
+    );
+    out.push_str(&format!(
+        "\n  {}",
+        truncate(c.body.lines().next().unwrap_or("").trim(), 100)
+    ));
+    out.push_str(&replies_section(c));
+    out
+}
+
+impl PrettyPrint for CommentThreads {
+    fn pretty(&self) -> String {
+        let list = &self.0;
+        if list.nodes.is_empty() {
+            return "No results.".into();
+        }
+        let mut out = list
+            .nodes
+            .iter()
+            .map(thread_block)
+            .collect::<Vec<_>>()
+            .join("\n\n");
+        let n = list.nodes.len();
+        let total: usize = n + list
+            .nodes
+            .iter()
+            .map(|c| c.children.nodes.len())
+            .sum::<usize>();
+        if list.page_info.has_next_page {
+            out.push_str(&format!(
+                "\n\n{n} threads ({total} comments, more available)"
+            ));
+        } else {
+            out.push_str(&format!("\n\n{n} threads ({total} comments)"));
+        }
+        out
     }
 }
 
