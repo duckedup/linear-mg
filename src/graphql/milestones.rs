@@ -53,6 +53,23 @@ pub struct MilestoneUpdateResponse {
     pub project_milestone_update: ProjectMilestonePayload,
 }
 
+/// Build a `ProjectMilestoneFilter` scoping by project and/or exact name
+/// (case-insensitive). Returns `None` when neither is given.
+pub fn milestone_filter(project_id: Option<&str>, name: Option<&str>) -> Option<serde_json::Value> {
+    let mut filter = serde_json::Map::new();
+    if let Some(pid) = project_id {
+        filter.insert("project".into(), serde_json::json!({ "id": { "eq": pid } }));
+    }
+    if let Some(n) = name {
+        filter.insert("name".into(), serde_json::json!({ "eqIgnoreCase": n }));
+    }
+    if filter.is_empty() {
+        None
+    } else {
+        Some(serde_json::Value::Object(filter))
+    }
+}
+
 impl LinearClient {
     pub async fn get_milestone(&self, id: &str) -> Result<ProjectMilestone, CliError> {
         let query =
@@ -68,16 +85,17 @@ impl LinearClient {
         after: Option<String>,
         include_archived: bool,
         order_by: &str,
+        filter: Option<serde_json::Value>,
     ) -> Result<Connection<ProjectMilestone>, CliError> {
         let query = format!(
-            "query($first: Int, $after: String, $includeArchived: Boolean, $orderBy: PaginationOrderBy) {{
-                projectMilestones(first: $first, after: $after, includeArchived: $includeArchived, orderBy: $orderBy) {{
+            "query($first: Int, $after: String, $includeArchived: Boolean, $orderBy: PaginationOrderBy, $filter: ProjectMilestoneFilter) {{
+                projectMilestones(first: $first, after: $after, includeArchived: $includeArchived, orderBy: $orderBy, filter: $filter) {{
                     nodes {{ {MILESTONE_FIELDS} }}
                     pageInfo {{ hasNextPage hasPreviousPage endCursor startCursor }}
                 }}
             }}"
         );
-        let vars = serde_json::json!({ "first": first, "after": after, "includeArchived": include_archived, "orderBy": order_by });
+        let vars = serde_json::json!({ "first": first, "after": after, "includeArchived": include_archived, "orderBy": order_by, "filter": filter });
         let resp: MilestonesQuery = self.query(&query, Some(vars)).await?;
         Ok(resp.project_milestones)
     }
