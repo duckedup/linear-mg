@@ -1,6 +1,6 @@
 [package]
 name = "linear-mg"
-version = "0.5.1"
+version = "0.6.0"
 edition = "2024"
 rust-version = "1.95"
 description = "A CLI tool for the Linear GraphQL API, designed for AI agent consumption"

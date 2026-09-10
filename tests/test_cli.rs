@@ -146,3 +146,42 @@ fn test_projects_list_help() {
         .stdout(predicate::str::contains("--lead"))
         .stdout(predicate::str::contains("--health"));
 }
+
+#[test]
+fn test_issues_update_help_has_milestone_flags() {
+    Command::cargo_bin("linear-mg")
+        .unwrap()
+        .args(["issues", "update", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("--milestone"))
+        .stdout(predicate::str::contains("--no-milestone"));
+}
+
+#[test]
+fn test_issues_update_milestone_flags_conflict() {
+    Command::cargo_bin("linear-mg")
+        .unwrap()
+        .args([
+            "issues",
+            "update",
+            "ENG-1",
+            "--milestone",
+            "Beta",
+            "--no-milestone",
+        ])
+        .env("LINEAR_API_KEY", "test")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("cannot be used with"));
+}
+
+#[test]
+fn test_milestones_list_has_project_filter() {
+    Command::cargo_bin("linear-mg")
+        .unwrap()
+        .args(["milestones", "list", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("--project"));
+}

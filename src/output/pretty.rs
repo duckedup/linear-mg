@@ -147,6 +147,12 @@ impl PrettyPrint for Issue {
         if let Some(ref p) = self.project {
             out.push_str(&format!("\n  Project:   {}", p.name));
         }
+        if let Some(ref m) = self.project_milestone {
+            match m.target_date {
+                Some(ref d) => out.push_str(&format!("\n  Milestone: {} (due {d})", m.name)),
+                None => out.push_str(&format!("\n  Milestone: {}", m.name)),
+            }
+        }
         if let Some(ref c) = self.cycle {
             let name = c.name.as_deref().unwrap_or("");
             if name.is_empty() {
@@ -290,6 +296,7 @@ impl PrettyPrint for Project {
             self.lead
                 .as_ref()
                 .map_or("-".into(), |l| l.display_name.clone()),
+            self.target_date.as_deref().unwrap_or("-").into(),
         ]
     }
 }

@@ -106,6 +106,40 @@ async fn test_resolve_project_by_name_and_slug() {
 }
 
 #[tokio::test]
+async fn test_resolve_project_duplicate_name_is_ambiguous() {
+    let (server, client) = setup_mock_server().await;
+    Mock::given(method("POST"))
+        .and(path("/graphql"))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_string(projects_list_response(vec![
+                project_node("proj-1", "Platform", "platform-a", "In Progress"),
+                project_node("proj-2", "Platform", "platform-b", "Planned"),
+            ])),
+        )
+        .mount(&server)
+        .await;
+
+    let err = resolve::resolve_project(&client, "Platform")
+        .await
+        .unwrap_err();
+    match err {
+        linear_mg::error::CliError::InvalidInput(msg) => {
+            assert!(
+                msg.contains("platform-a") && msg.contains("platform-b"),
+                "{msg}"
+            );
+        }
+        other => panic!("expected InvalidInput, got {other:?}"),
+    }
+
+    // A slug still resolves unambiguously.
+    let by_slug = resolve::resolve_project(&client, "platform-b")
+        .await
+        .unwrap();
+    assert_eq!(by_slug, "proj-2");
+}
+
+#[tokio::test]
 async fn test_resolve_project_not_found() {
     let (server, client) = setup_mock_server().await;
     Mock::given(method("POST"))

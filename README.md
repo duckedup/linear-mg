@@ -127,6 +127,13 @@ linear-mg issues update ENG-123 --state "In Progress" --assignee me
 linear-mg issues create --team ENG --title "..." --labels Bug,"Needs Review"
 linear-mg issues update ENG-123 --add-labels Bug --remove-labels "Needs Review"
 
+# Link an issue to a project milestone (--project and --milestone accept names or IDs;
+# a milestone name is looked up within --project, or the issue's current project)
+linear-mg issues create --team ENG --title "..." --project "Mobile App" --milestone "Beta"
+linear-mg issues update ENG-123 --milestone "Beta"
+linear-mg issues update ENG-123 --no-milestone          # unlink
+linear-mg issues list --project "Mobile App" --milestone "Beta"
+
 # Archive or delete
 linear-mg issues archive ISSUE_ID
 linear-mg issues delete ISSUE_ID
@@ -180,6 +187,10 @@ linear-mg projects list --name "roadmap"
 linear-mg projects create --name "Q3 Roadmap" --teams TEAM_ID_1,TEAM_ID_2
 linear-mg projects update PROJECT_ID --name "Q3 Roadmap v2"
 linear-mg projects archive PROJECT_ID
+
+# Set start and target (due) dates (YYYY-MM-DD)
+linear-mg projects create --name "Q3 Roadmap" --teams TEAM_ID --start-date 2024-07-01 --target-date 2024-09-30
+linear-mg projects update PROJECT_ID --target-date 2024-10-15
 ```
 
 ### Comments
@@ -232,8 +243,10 @@ linear-mg documents create --title "Design Doc" --content "# Overview\n..."
 linear-mg initiatives list
 linear-mg initiatives get INITIATIVE_ID
 
-linear-mg milestones list
-linear-mg milestones create --name "Beta launch" --project PROJECT_ID
+# Milestones (--project accepts a project name, slug, or ID)
+linear-mg milestones list --project "Mobile App"
+linear-mg milestones create --name "Beta launch" --project "Mobile App" --target-date 2024-09-30
+linear-mg milestones update MILESTONE_ID --target-date 2024-10-15
 
 linear-mg attachments list
 linear-mg attachments create --issue ENG-123 --title "PR Link" --url "https://github.com/..."

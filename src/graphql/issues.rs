@@ -33,6 +33,9 @@ pub struct Issue {
     pub creator: Option<UserSlim>,
     pub team: TeamSlim,
     pub project: Option<ProjectSlim>,
+    /// Milestone this issue is linked to (always within `project`).
+    #[serde(default)]
+    pub project_milestone: Option<MilestoneSlim>,
     pub cycle: Option<CycleSlim>,
     pub parent: Option<IssueSlim>,
     pub labels: LabelConnection,
@@ -90,6 +93,14 @@ pub struct ProjectSlim {
 
 #[derive(Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct MilestoneSlim {
+    pub id: String,
+    pub name: String,
+    pub target_date: Option<String>,
+}
+
+#[derive(Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CycleSlim {
     pub id: String,
     pub number: f64,
@@ -134,6 +145,7 @@ const ISSUE_FIELDS: &str = "
     creator { id name displayName email }
     team { id name key }
     project { id name slugId }
+    projectMilestone { id name targetDate }
     cycle { id number name }
     parent { id identifier title }
     labels { nodes { id name color } }

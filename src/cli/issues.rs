@@ -36,6 +36,9 @@ pub enum IssuesAction {
         /// Filter by project (ID, name, or slug)
         #[arg(long)]
         project: Option<String>,
+        /// Filter by milestone (ID or name; names are scoped to --project when given)
+        #[arg(long)]
+        milestone: Option<String>,
         /// Filter by cycle ID
         #[arg(long)]
         cycle: Option<String>,
@@ -59,8 +62,12 @@ pub enum IssuesAction {
         priority: Option<i32>,
         #[arg(long)]
         state: Option<String>,
+        /// Project (ID, name, or slug)
         #[arg(long)]
         project: Option<String>,
+        /// Milestone to link (ID or name; names are scoped to --project when given)
+        #[arg(long)]
+        milestone: Option<String>,
         #[arg(long)]
         cycle: Option<String>,
         #[arg(long, value_delimiter = ',')]
@@ -85,8 +92,16 @@ pub enum IssuesAction {
         priority: Option<i32>,
         #[arg(long)]
         state: Option<String>,
+        /// Project (ID, name, or slug)
         #[arg(long)]
         project: Option<String>,
+        /// Milestone to link (ID or name; names are scoped to --project or the
+        /// issue's current project)
+        #[arg(long, conflicts_with = "no_milestone")]
+        milestone: Option<String>,
+        /// Unlink the issue from its milestone
+        #[arg(long)]
+        no_milestone: bool,
         #[arg(long)]
         cycle: Option<String>,
         #[arg(long, value_delimiter = ',')]
@@ -157,11 +172,12 @@ impl IssuesCommand {
                 state,
                 label,
                 project,
+                milestone,
                 cycle,
                 priority,
             } => {
                 // Resolve human-friendly values (assignee: "me"/name/email;
-                // project: name/slug) to IDs for the filter.
+                // project: name/slug; milestone: name) to IDs for the filter.
                 let assignee = match assignee {
                     Some(a) => Some(resolve::resolve_assignee(client, &a).await?),
                     None => None,
@@ -170,7 +186,17 @@ impl IssuesCommand {
                     Some(p) => Some(resolve::resolve_project(client, &p).await?),
                     None => None,
                 };
-                let filter = build_filter(team, assignee, state, label, project, cycle, priority);
+                let milestone = match milestone {
+                    Some(m) => Some(
+                        resolve::resolve_milestone(client, &m, project.as_deref())
+                            .await?
+                            .id,
+                    ),
+                    None => None,
+                };
+                let filter = build_filter(
+                    team, assignee, state, label, project, milestone, cycle, priority,
+                );
                 let params = pagination.to_paginator_params();
                 let include_archived = pagination.include_archived;
                 let order_by = pagination.order_by.as_str().to_string();
@@ -199,6 +225,7 @@ impl IssuesCommand {
                 priority,
                 state,
                 project,
+                milestone,
                 cycle,
                 labels,
                 due_date,
@@ -222,9 +249,7 @@ impl IssuesCommand {
                     let id = resolve::resolve_state(client, &v, Some(&team_id)).await?;
                     obj.insert("stateId".into(), id.into());
                 }
-                if let Some(v) = project {
-                    obj.insert("projectId".into(), v.into());
-                }
+                resolve::apply_project_and_milestone(client, obj, project, milestone, None).await?;
                 if let Some(v) = cycle {
                     obj.insert("cycleId".into(), v.into());
                 }
@@ -260,6 +285,8 @@ impl IssuesCommand {
                 priority,
                 state,
                 project,
+                milestone,
+                no_milestone,
                 cycle,
                 add_labels,
                 remove_labels,
@@ -312,8 +339,23 @@ impl IssuesCommand {
                     let sid = resolve::resolve_state(client, &v, team_ctx.as_deref()).await?;
                     obj.insert("stateId".into(), sid.into());
                 }
-                if let Some(v) = project {
-                    obj.insert("projectId".into(), v.into());
+                // A milestone name without --project is scoped to the project
+                // the issue currently belongs to.
+                let current_project = if milestone.is_some() && project.is_none() {
+                    client.get_issue(&id).await?.project.map(|p| p.id)
+                } else {
+                    None
+                };
+                resolve::apply_project_and_milestone(
+                    client,
+                    obj,
+                    project,
+                    milestone,
+                    current_project,
+                )
+                .await?;
+                if no_milestone {
+                    obj.insert("projectMilestoneId".into(), serde_json::Value::Null);
                 }
                 if let Some(v) = cycle {
                     obj.insert("cycleId".into(), v.into());
@@ -455,12 +497,16 @@ impl IssuesCommand {
     }
 }
 
+// One positional argument per `issues list` filter flag; a struct would just be
+// destructured straight back into these locals.
+#[allow(clippy::too_many_arguments)]
 fn build_filter(
     team: Option<String>,
     assignee: Option<String>,
     state: Option<String>,
     label: Option<String>,
     project: Option<String>,
+    milestone: Option<String>,
     cycle: Option<String>,
     priority: Option<f64>,
 ) -> Option<serde_json::Value> {
@@ -488,6 +534,12 @@ fn build_filter(
     }
     if let Some(p) = project {
         filter.insert("project".into(), serde_json::json!({ "id": { "eq": p } }));
+    }
+    if let Some(m) = milestone {
+        filter.insert(
+            "projectMilestone".into(),
+            serde_json::json!({ "id": { "eq": m } }),
+        );
     }
     if let Some(c) = cycle {
         filter.insert("cycle".into(), serde_json::json!({ "id": { "eq": c } }));

@@ -75,6 +75,75 @@ async fn test_get_issue() {
     // Relations default to empty when the response omits them.
     assert!(issue.relations.nodes.is_empty());
     assert!(issue.inverse_relations.nodes.is_empty());
+    // Milestone is optional and defaults to None when omitted.
+    assert!(issue.project_milestone.is_none());
+}
+
+#[tokio::test]
+async fn test_update_issue_links_milestone() {
+    let (server, client) = setup_mock_server().await;
+
+    let response = serde_json::json!({
+        "data": {
+            "issueUpdate": {
+                "success": true,
+                "issue": {
+                    "id": "issue-1",
+                    "identifier": "ENG-1",
+                    "title": "Fix bug in login",
+                    "description": null,
+                    "priority": 1.0,
+                    "priorityLabel": "Urgent",
+                    "estimate": null,
+                    "dueDate": null,
+                    "createdAt": "2024-06-01T00:00:00.000Z",
+                    "updatedAt": "2024-06-15T00:00:00.000Z",
+                    "completedAt": null,
+                    "canceledAt": null,
+                    "archivedAt": null,
+                    "startedAt": null,
+                    "branchName": "fix/eng-1",
+                    "number": 1.0,
+                    "url": "https://linear.app/test/issue/ENG-1",
+                    "trashed": false,
+                    "state": { "id": "s1", "name": "Todo", "type": "unstarted", "color": "#ccc" },
+                    "assignee": null,
+                    "creator": null,
+                    "team": { "id": "t1", "name": "Engineering", "key": "ENG" },
+                    "project": { "id": "proj-1", "name": "Mobile App", "slugId": "mobile-app" },
+                    "projectMilestone": { "id": "ms-1", "name": "Beta", "targetDate": "2024-09-30" },
+                    "cycle": null,
+                    "parent": null,
+                    "labels": { "nodes": [] }
+                }
+            }
+        }
+    });
+
+    // Only matches when the mutation input carries projectMilestoneId, so this
+    // verifies the link is sent to the API and the milestone is read back.
+    Mock::given(method("POST"))
+        .and(path("/graphql"))
+        .and(wiremock::matchers::body_string_contains(
+            "projectMilestoneId",
+        ))
+        .and(wiremock::matchers::body_string_contains("ms-1"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(&response))
+        .mount(&server)
+        .await;
+
+    let payload = client
+        .update_issue(
+            "issue-1",
+            serde_json::json!({ "projectMilestoneId": "ms-1" }),
+        )
+        .await
+        .unwrap();
+    assert!(payload.success);
+    let ms = payload.issue.unwrap().project_milestone.unwrap();
+    assert_eq!(ms.id, "ms-1");
+    assert_eq!(ms.name, "Beta");
+    assert_eq!(ms.target_date.as_deref(), Some("2024-09-30"));
 }
 
 fn relation_json(id: &str, ty: &str, source: &str, target: &str) -> serde_json::Value {
